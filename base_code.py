@@ -30,70 +30,66 @@ import math
 
 def tiling(state_list, tiles, tile_offsets, tile_widths):
 
-    processed_states = 4*[0]
-    processed_states[0] = np.arctan2(state_list[1], state_list[0])
-    processed_states[1] = np.arctan2(state_list[3], state_list[2])
-    processed_states[2] = state_list[4]
-    processed_states[3] = state_list[5]
+    processed_states = process_states(state_list)
 
     print(processed_states)
 
     for i in range(1):
         counts = np.zeros((4), dtype=np.int32)
         benchmark = np.zeros((4), dtype=np.float32)
-        
-        benchmark[0] = tile_offsets[i][0]
+        benchmark_high = np.zeros((4), dtype=np.float32)
+
+        benchmark[0] = tile_offsets[i][0]+tile_widths[0]
         while processed_states[0] > benchmark[0] and counts[0] < 11:
             benchmark[0] += tile_widths[0]
             counts[0] += 1   
 
-        benchmark[1] = tile_offsets[i][1]
+        benchmark[1] = tile_offsets[i][1]+tile_widths[1]
         while processed_states[1] > benchmark[1] and counts[1] < 11:
             benchmark[1] += tile_widths[1]
             counts[1] += 1
                 
-        benchmark[2] = tile_offsets[i][2]
+        benchmark[2] = tile_offsets[i][2]+tile_widths[2]
         while processed_states[2] > benchmark[2] and counts[2] < 47:
             benchmark[2] += tile_widths[2]
             counts[2] += 1
                     
-        benchmark[3] = tile_offsets[i][3]
+        benchmark[3] = tile_offsets[i][3]+tile_widths[3]
         while processed_states[3] > benchmark[3] and counts[3] < 107:
             benchmark[3] += tile_widths[3]
             counts[3] += 1
             
         #tiles[i, counts[0], counts[1], counts[2], counts[3]] = 1
         print()
-        print(processed_states)
-        print(i, benchmark)
-        print(i, counts)
+        print("Processed states:", processed_states)
+        print("Tile widths:", tile_widths)
+        print("Upper bound:", benchmark)
+        print("Indices:", counts)
+
+        print(tile_widths[0]*11-math.pi)
+        print(tile_widths[0]*10-math.pi)
+
+def process_states(state_list):
+
+    processed_states = 4*[0]
+    processed_states[0] = np.arctan2(state_list[1], state_list[0])
+    processed_states[1] = np.arctan2(state_list[3], state_list[2])
+    processed_states[2] = state_list[4]
+    processed_states[3] = state_list[5]
+
+    return processed_states
 
 # Feed this function raw state list
 def calculate_reward(state_list):
-    
-    reward = -10000
 
-    if (len(state_list) != 6):
-        print("Error: need exactly 6 states")
-    else:
-        # Initialize reward to cos position of center link
-        # This will be less than 1 when below 0 altitude, and greater than 1 when above 0 altitude
-        reward = state_list[0]*-1
+    processed_states = process_states(state_list)
 
-        # Decide if center link is to the left of center divide or to the right
-        # If left, add reward -1*sin(theta2)
-        # If right, add reward sin(theta2)
-        
-        # Left
-        if (state_list[1] < 0):
-            reward += -1*state_list[3]
-        # Right
-        else:
-            reward += state_list[3]
-            
-            # Subtract both link angular velocities from reward
-            reward -= state_list[4]
-            reward -= state_list[5]
+    reward = math.fabs(processed_states[0])
+
+    reward += math.fabs(processed_states[1]-processed_states[0])
+
+    reward -= math.fabs(processed_states[2])
+    reward -= math.fabs(processed_states[3])
 
     return reward
 
@@ -147,7 +143,8 @@ tile_widths = [(2.4*math.pi)/12, (2.4*math.pi)/12, (9.6*math.pi)/48, (21.6*math.
 ####################
 
 print()
-raw_state_list = [0,1,0,-1,1,1]
+raw_state_list = [-1,0,1,0,0,0]
+print(raw_state_list)
 reward = calculate_reward(raw_state_list)
 print("Reward:", reward)
 tiling(raw_state_list, tiles, tile_offsets, tile_widths)
