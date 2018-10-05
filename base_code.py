@@ -17,57 +17,69 @@ import math
 #     # of tiles per dimension: (12,12,48,108)
 #     Range of each dimension: (-pi->pi, -pi->pi, -4pi->+4pi, -9pi->+9pi)
 #     Length of each dimension: (2pi,2pi,8pi,18pi)
-#     Tile width per dimension: (2.4pi/12, 2.4pi/12, 9.6pi/48, 21.6pi/108)
-#     Unit distance per dimension: ( (2.4pi/12)/4, (2.4pi/12)/4, (9.6pi/48)/4, (21.6pi/108)/4) )
+#     Tile width per dimension: (2.2pi/12, 2.2pi/12, 8.8pi/48, 19.8pi/108)
+#     Unit distance per dimension: ( (2.2pi/12)/4, (2.2pi/12)/4, (8.8pi/48)/4, (19.8pi/108)/4) )
 # Offset vector is (1,3,5,7), adding from an origin tile of (0,0,0,0)
 #     Tile 1: (0, 0, 0, 0)
 #     Tile 2: (1, 3, 5, 7)
 #     Tile 3: (2, 6,10,14)
 #     Tile 4: (3, 9,15,21)
-#     Tile 5: (4,12,20,28)
-# Discretized state space: (48, 48, 192, 432)
-# Total number of states: ~191 million
+# Discretized state space: (4, 12, 12, 48, 108)
+# Total number of states: 2,875,392 million
 
 def tiling(state_list, tiles, tile_offsets, tile_widths):
 
     processed_states = process_states(state_list)
 
     print(processed_states)
-
-    for i in range(1):
-        counts = np.zeros((4), dtype=np.int32)
+    counts = np.zeros((4,4), dtype=np.int32)
+    for i in range(4):
         benchmark = np.zeros((4), dtype=np.float32)
         benchmark_high = np.zeros((4), dtype=np.float32)
 
         benchmark[0] = tile_offsets[i][0]+tile_widths[0]
-        while processed_states[0] > benchmark[0] and counts[0] < 11:
+        while processed_states[0] > benchmark[0] and counts[i,0] < 11:
             benchmark[0] += tile_widths[0]
-            counts[0] += 1   
+            counts[i,0] += 1   
 
         benchmark[1] = tile_offsets[i][1]+tile_widths[1]
-        while processed_states[1] > benchmark[1] and counts[1] < 11:
+        while processed_states[1] > benchmark[1] and counts[i,1] < 11:
             benchmark[1] += tile_widths[1]
-            counts[1] += 1
+            counts[i,1] += 1
                 
         benchmark[2] = tile_offsets[i][2]+tile_widths[2]
-        while processed_states[2] > benchmark[2] and counts[2] < 47:
+        while processed_states[2] > benchmark[2] and counts[i,2] < 47:
             benchmark[2] += tile_widths[2]
-            counts[2] += 1
+            counts[i,2] += 1
                     
         benchmark[3] = tile_offsets[i][3]+tile_widths[3]
-        while processed_states[3] > benchmark[3] and counts[3] < 107:
+        while processed_states[3] > benchmark[3] and counts[i,3] < 107:
             benchmark[3] += tile_widths[3]
-            counts[3] += 1
+            counts[i,3] += 1
             
-        #tiles[i, counts[0], counts[1], counts[2], counts[3]] = 1
+        tiles[i, counts[i,0], counts[i,1], counts[i,2], counts[i,3]] = 1
+        '''
         print()
         print("Processed states:", processed_states)
         print("Tile widths:", tile_widths)
         print("Upper bound:", benchmark)
         print("Indices:", counts)
 
-        print(tile_widths[0]*11-math.pi)
-        print(tile_widths[0]*10-math.pi)
+        i = 0
+        print()
+        for j in range(12):
+            print(j, " | ", tile_widths[0]*j+tile_offsets[i][0], " | ", processed_states[0], "|", counts[i,0])
+        print()
+        for j in range(12):
+            print(j, " | ", tile_widths[1]*j+tile_offsets[i][1], " | ", processed_states[1], "|", counts[i,1])
+        print()
+        for j in range(48):
+            print(j, " | ", tile_widths[2]*j+tile_offsets[i][2], " | ", processed_states[2], "|", counts[i,2])
+        print()
+        for j in range(104):
+            print(j, " | ", tile_widths[3]*j+tile_offsets[i][3], " | ", processed_states[3], "|", counts[i,3])
+        '''
+        return tiles
 
 def process_states(state_list):
 
@@ -114,10 +126,10 @@ for _ in range(1):
 # Setup #
 #########
 
-dim1 = (2.4*math.pi/12)/4
+dim1 = (2.2*math.pi/12)/4
 dim2 = dim1
-dim3 = (9.6*math.pi/48)/4
-dim4 = (21.6*math.pi/104)/4
+dim3 = (8.8*math.pi/48)/4
+dim4 = (19.8*math.pi/104)/4
 
 unit_vector = np.asarray((dim1,dim2,dim3,dim4), dtype=np.float32)
 
@@ -136,15 +148,18 @@ tile_offsets[3] = tile_offsets[3]*unit_vector*-1+tile_offsets[0]
 for i in range(4):
     print(tile_offsets[i])
     
-tiles = np.empty((4, 12, 12, 48, 108), dtype=np.int32)
-tile_widths = [(2.4*math.pi)/12, (2.4*math.pi)/12, (9.6*math.pi)/48, (21.6*math.pi)/108]
-####################
-# Actual algorithm #
-####################
+tiles = np.empty((4, 12, 12, 48, 104), dtype=np.int32)
+tile_widths = [(2.2*math.pi)/12, (2.2*math.pi)/12, (8.8*math.pi)/48, (19.8*math.pi)/104]
+
+###############
+# Actual Main #
+###############
 
 print()
 raw_state_list = [-1,0,1,0,0,0]
 print(raw_state_list)
 reward = calculate_reward(raw_state_list)
 print("Reward:", reward)
-tiling(raw_state_list, tiles, tile_offsets, tile_widths)
+tiled_states = tiling(raw_state_list, tiles, tile_offsets, tile_widths)
+print(tiled_states.shape)
+print(4*12*12*48*104)
