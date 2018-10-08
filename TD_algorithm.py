@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+# TODO:
+# •Figure out how to return to previous state in env
+# •Complete policy method
+# •Complete weight update method
+# •Complete train method
+# •Compile statistics needed for analysis
+
+
 # Raw state space: [cos(theta1) sin(theta1) cos(theta2) sin(theta2) dottheta1 dottheta2]
 #     •Bounds: -1 <= cos or sin(theta1 or theta2) <= 1; -4pi <= dottheta1 <= 4pi; -9pi <= dottheta2 <= 9pi
 # Processed state space: [theta1 theta2 dottheta1 dottheta2]
@@ -10,6 +18,7 @@
 import gym
 import numpy as np
 import math
+import copy
 
 # Tiles state space into distinct partitions. The intersections between those partitions are unique, and each is one element.
 # 4 tilings/partitions, calculated by pg 180
@@ -58,29 +67,11 @@ def tiling(state_list, tiles, tile_offsets, tile_widths):
             counts[i,3] += 1
             
         tiles[i, counts[i,0], counts[i,1], counts[i,2], counts[i,3]] = 1
-        '''
-        print()
-        print("Processed states:", processed_states)
-        print("Tile widths:", tile_widths)
-        print("Upper bound:", benchmark)
-        print("Indices:", counts)
+        features = tiles
 
-        i = 0
-        print()
-        for j in range(12):
-            print(j, " | ", tile_widths[0]*j+tile_offsets[i][0], " | ", processed_states[0], "|", counts[i,0])
-        print()
-        for j in range(12):
-            print(j, " | ", tile_widths[1]*j+tile_offsets[i][1], " | ", processed_states[1], "|", counts[i,1])
-        print()
-        for j in range(48):
-            print(j, " | ", tile_widths[2]*j+tile_offsets[i][2], " | ", processed_states[2], "|", counts[i,2])
-        print()
-        for j in range(104):
-            print(j, " | ", tile_widths[3]*j+tile_offsets[i][3], " | ", processed_states[3], "|", counts[i,3])
-        '''
-        return tiles
+        return features
 
+# Feed this function raw state list
 def process_states(state_list):
 
     processed_states = 4*[0]
@@ -105,48 +96,91 @@ def calculate_reward(state_list):
 
     return reward
 
-# Learning algorithm to implemented: Q-Learning, Sarsa, Expected Sarsa
-def learning_algo():
-    a = 0
+def calculate_state_value(features, weights):
+    weighted_mult = np.multiply(features, weights)
+    state_value = np.reduce_sum(weighted_mult)
+    
+    return state_value
+
+# Learning algorithm to implemented: TD, Sarsa, Expected Sarsa
+def weight_update(alpha, gamma, reward, 
+                  features, weights, state_value, state_value_prime):
+
+    weights = weights + alpha*(reward + (gamma*state_value_prime) - state_value)*features
+
+    return weights
+    
+
+# Policy choice
+def policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon):
+
+    max_value = 0
+    max_value_index = 0
+    for i in range(action_space.shape[0]):
+        dummy_env = copy.deepcopy(env)
+        raw_state = dummy_env.step(action_space[i])
+        features = tiling(raw_state, tiles, tile_offsets, tile_widths)
+        value = calculate_state_value(features, weights)
+        if i == 0:
+            max_value = value
+            max_value_index = 0
+        else if value > max_value:
+            max_value = value
+            max_value_index = i
+
+    # Do actual policy part here
+
 
 # Training
-def train(initializer, n_tilings, n_timesteps,
-          alpha, tiles, tile_offsets, tile_widths):
+def train(tiles, tile_offsets, tile_widths,
+          alpha, gamma, weights, epsilon, n_episodes, n_timesteps):
     
     env = gym.make("Acrobot-v1")
     n_episodes = 0
+    action_space = np.asarray((-1,0,1), dtype=np.int32)
+    training_rewards = np.zeros((n_episodes), dtype=np.float32)
 
-    while(1):
+
+    for i in range(n_episodes):
                 
         env.reset()
-        raw_state, _, _, _ = 0 # Get initial state
-        feature_vector = 0 # Get initial feature vector
-        action = 0 # Get a from f, by using evaluation algorithm (QLearning, etc)
+        total_rewards = 0
 
         for j in range(n_timesteps):
-            a = 0
-            # Take action a
-            # Get sPrime, r from taking a
-            # Get fPrime tiling from sPrime
-            # Get aPrime from fPrime
-            # Learn:
-            #     1) Wb(f) = Wb(f) + (
+            action = policy_choice(env, epsilon) # Get first action
+            raw_state = env.step(action) # Get first state
+            features = tiling(raw_state, tile, tile_offsets, tile_widths, weights) # Get first features
+            state_value = calculate_state_value(features, weights) # V(s)
+            action = policy_choice(env, epsilon) # Get second action
+            raw_state_prime = env.step(action) # Get second state
+            reward = calculate_reward(raw_state_prime) # Get Rt+1
+            features_prime = tiling(raw_state_prime, tile, tile_offsets, tile_widths, weights) # Get second features
+            state_value_prime = calculate_state_value(features, weights) # V(s')
 
-        episodes += 1
+            weights = weight_update(alpha, gamma, reward, 
+                                    features, weights, state_value, state_value_prime) # Update weights to learn
+            total_rewards += reward
+
+        training_rewards[i] = total_rewards
             
 
-'''                                                                                                                                                                                                         
-env = gym.make("Acrobot-v1")                                                                                                                                                                                
-env.reset()                                                                                                                                                                                                 
-                                                                                                                                                                                                            
-for _ in range(1):                                                                                                                                                                                          
-    obs, reward, done, info = env.step(env.action_space.sample())                                                                                                                                           
-    print(obs)                                                                                                                                                                                              
-'''
+    return weights, training_rewards
 
-#########
-# Setup #
-#########
+################
+# Program Plan #
+################
+#
+# 1) Initialize feature vector and weight vector
+# 2) Train
+#     a) Get initial state
+#     b) Get feature vector from state
+#     c) Get action from policy by feeding feature vector, return s' and r
+#     d) Update weights with s' and s
+#     e) Return to b
+# 3) Get statistics from run
+
+###
+# 1) Initialize feature vector and weight vector
 
 dim1 = (2.2*math.pi/12)/4
 dim2 = dim1
@@ -169,25 +203,20 @@ tile_offsets[3] = tile_offsets[3]*unit_vector*-1+tile_offsets[0]
 
 for i in range(4):
     print(tile_offsets[i])
-    
+
 tiles = np.empty((4, 12, 12, 48, 104), dtype=np.int32)
 tile_widths = [(2.2*math.pi)/12, (2.2*math.pi)/12, (8.8*math.pi)/48, (19.8*math.pi)/104]
+weights = np.zeros((4,12, 12, 48, 104), dtype=np.float32)
 
-###############
-# Actual Main #
-###############
+###
+# 2) Train
+#     a) Get initial state
+#     b) Get feature vector from state
+#     c) Get action from policy by feeding feature vector, return s' and r
+#     d) Update weights with s' and s
+#     e) Return to b
 
-print()
-raw_state_list = [0,1,-1,0,0,0]
-print(raw_state_list)
-processed_states = process_states(raw_state_list)
-print(processed_states)
-reward = calculate_reward(raw_state_list)
-print("Reward:", reward)
-tiled_states = tiling(raw_state_list, tiles, tile_offsets, tile_widths)
-print(tiled_states.shape)
-print(4*12*12*48*104)
 
-# (43, 43, 172, 374) = 118 million
-
+env = gym.make("Acrobot-v1")                                                                                                                                                      
+env.reset()     
 
