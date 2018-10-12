@@ -36,11 +36,10 @@ import copy
 # Discretized state space: (4, 12, 12, 48, 108)
 # Total number of states: 2,875,392 million
 
-def tiling(state_list, tiles, tile_offsets, tile_widths):
+def tiling(state_list, action_list, tiles, tile_offsets, tile_widths):
 
     processed_states = process_states(state_list)
 
-    #print(processed_states)
     counts = np.zeros((4,4), dtype=np.int32)
     for i in range(4):
         benchmark = np.zeros((4), dtype=np.float32)
@@ -121,25 +120,22 @@ def weight_update(alpha, lamb, gamma, z, reward,
 def policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon):
 
     action = 0
-
-    print("action space:", action_space);
-
     max_value = 0
     max_value_index = 0
     for i in range(action_space.shape[0]):
 #        env.close()
-        dummy_env = copy.deepcopy(env)
-        raw_state, _, _, _ = dummy_env.step(action_space[i])
-        features = tiling(raw_state, tiles, tile_offsets, tile_widths)
+  #      dummy_env = copy.deepcopy(env)
+  #      raw_state, _, _, _ = dummy_env.step(action_space[i]
+        features = tiling(action_space, raw_state, tiles, tile_offsets, tile_widths)
         value = calculate_state_value(features, weights)
-        if i == 0:
+    if i == 0:
             max_value = value
-            max_value_index = 0
-        elif value > max_value:
-            max_value = value
-            max_value_index = i
+  #          max_value_index = 0
+  #      elif value > max_value:
+  #          max_value = value
+  #          max_value_index = i
         #print("Value:", value, "Index:", i, "Action:", action_space[i])
-        processed_state = process_states(raw_state)
+   #     processed_state = process_states(raw_state)
         #print("The state:", processed_state)
 
     # Do actual policy part here
@@ -148,10 +144,11 @@ def policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, 
         #print("Max chosen")
         return action_space[max_value_index]
     else:
+        
         #print("Explore chosen")
-        action_index = np.random.randint(action_space.shape[0])
-        while action_index == max_value_index:
-            action_index = np.random.randint(action_space.shape[0])
+#        action_index = np.random.randint(action_space.shape[0])
+#        while action_index == max_value_index:
+#            action_index = np.random.randint(action_space.shape[0])
             
         return action_space[action_index]
 

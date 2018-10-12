@@ -36,7 +36,7 @@ import copy
 # Discretized state space: (4, 12, 12, 48, 108)
 # Total number of states: 2,875,392 million
 
-def tiling(state_list, tiles, tile_offsets, tile_widths):
+def tiling(state_list, action_space, tiles, tile_offsets, tile_widths):
 
     processed_states = process_states(state_list)
 
@@ -118,16 +118,13 @@ def weight_update(alpha, lamb, gamma, z, reward,
     
 
 # Policy choice
-def policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon):
+def policy_choice(raw_state, action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon):
 
     action = 0
-
     max_value = 0
     max_value_index = 0
     for i in range(action_space.shape[0]):
-#        env.close()
-        dummy_env = copy.deepcopy(env)
-        raw_state, _, _, _ = dummy_env.step(action_space[i])
+        
         features = tiling(raw_state, tiles, tile_offsets, tile_widths)
         value = calculate_state_value(features, weights)
         if i == 0:
@@ -166,30 +163,27 @@ def train(tiles, tile_offsets, tile_widths,
     print(n_episodes)
 
     for i in range(n_episodes):
-
+        
         env.reset()
         total_rewards = 0
-
         z = 0
-
         timestep_count = 0
         terminal = False
+        
+        action = random.choice(action_space) # First action is random
+
         while terminal is False:
-
-            action = policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon) # Get first action
-            #print("First action:", action)
-
-            # TD Prediction: starting in raw state and following vpi thereafter
- #           env.render()
             raw_state, _, _, _ = env.step(action) # Get first state
-            features = tiling(raw_state, tiles, tile_offsets, tile_widths) # Get first features
-            state_value = calculate_state_value(features, weights) # V(s)
-            action = policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon) # Get second action
+            features = tiling(raw_state, action_space, tiles, tile_offsets, tile_widths) # Get first features
+#            state_value = calculate_state_value(features, weights) # Q(s,a)
+            action = policy_choice(raw_state, action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon) # Get first action
+
+#            action = policy_choice(action_space, env, weights, tiles, tile_offsets, tile_widths, epsilon) # Get second action
             #print("Second action:", action)
-            raw_state_prime, reward, terminal, _ = env.step(action) # Get second state, Rt+1
+#            raw_state_prime, reward, terminal, _ = env.step(action) # Get second state, Rt+1
             ### reward = calculate_reward(raw_state_prime) # Get Rt+1
-            features_prime = tiling(raw_state_prime, tiles, tile_offsets, tile_widths) # Get second features
-            state_value_prime = calculate_state_value(features, weights) # V(s')
+#            features_prime = tiling(raw_state_prime, tiles, tile_offsets, tile_widths) # Get second features
+#            state_value_prime = calculate_state_value(features, weights) # V(s')
 
             weights, z = weight_update(alpha=alpha, lamb=lamb, gamma=gamma, reward=reward, z=z,
                                     features=features, weights=weights, state_value=state_value, state_value_prime=state_value_prime) # Update weights to learn
