@@ -10,10 +10,10 @@ plt.style.use('ggplot')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
-LOWER_BOUNDS = [0, 0, -12.566, -28.274]
-UPPER_BOUNDS = [2 * math.pi, 2 * math.pi, 12.566, 28.274]
+LOWER_BOUNDS = [-1 * math.pi, -1 * math.pi, -12.566, -28.274]
+UPPER_BOUNDS = [math.pi, math.pi, 12.566, 28.274]
 BINS = [10, 10, 10, 10]
-OFFSET = [-0.1, 0.5, 0.5, 0.5]
+OFFSET = [-0.1, 0.1, 0.1, 0.1] # Offsets should be < bin size which is currently 0.2
 
 # Process states function
 #
