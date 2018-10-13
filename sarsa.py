@@ -3,16 +3,17 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 import bisect
+import math
 
 # Configure plotting
 plt.style.use('ggplot')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
-LOWER_BOUNDS = [-1, -5]
-UPPER_BOUNDS = [1, 5]
-BINS = [10, 10]
-OFFSET = [-0.1, 0.5]
+LOWER_BOUNDS = [0, 0, -12.566, -28.274]
+UPPER_BOUNDS = [2 * math.pi, 2 * math.pi, 12.566, 28.274]
+BINS = [10, 10, 10, 10]
+OFFSET = [-0.1, 0.5, 0.5, 0.5]
 
 # Process states function
 #
@@ -166,9 +167,6 @@ def main():
 
     states = np.array([np.array([-0.85, -2]), np.array([0, 0]), np.array([1, 1])])
 
-    #coordinate = grid_state(state, grid)
-    #print("Coor: ", coordinate)
-
     grids = make_all_grids()
     print("Grids shape:", grids.shape)
     print("Grid: ", grids)
@@ -182,9 +180,8 @@ def main():
 
     #plt.subplot(visualize_tilings(grids))
     #plt.show()
-
-    plt.subplot(visualize_encoded_samples(states, encoded_states, grids))
-    plt.show()
+    #plt.subplot(visualize_encoded_samples(states, encoded_states, grids))
+    #plt.show()
 
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
@@ -196,13 +193,13 @@ def main():
 
     # Explore state (observation) space [delete]
     print("State space: ", env.observation_space)
-    print("State space mins: ", env.observation_space.low)
-    print("State space maxes: ", env.observation_space.high)
+    print("State space min (raw):", env.observation_space.low)
+    print("State space max (raw):", env.observation_space.high)
     # Explore action space
     print("Action space:", env.action_space)
     # Go
-    go = False
-    if go:
+    run = True
+    if run:
         for e in range (1):
             env.reset()
             for t in range(0, 100):
@@ -217,7 +214,8 @@ def main():
                 # Record new state
                 state = process_state(observation[0])
                 trial.append(state)
-                print("Trial " + t + ": " + state)
+                print("Trial " + str(t) + ":")
+                print(state)
             episode.append(trial)
     env.close()
 
