@@ -64,7 +64,7 @@ bins = [10, 10], offsets = [-0.1, 0.5]):
 # @param bin_specs: Dimension specifying the number bins
 # @param offsets_specs: Value by which grid layers should be offset from each other
 # @return: The tiles
-def make_grids(lower_bounds = [-1.0, -5.0], upper_bounds = [1.0, 5.0],
+def tile(lower_bounds = [-1.0, -5.0], upper_bounds = [1.0, 5.0],
 bin_specs = [[10, 10], [10,10]], offsets_specs = [[-0.1, 0.5], [0, 0.4]]):
     # First grid
     grids = [make_grid(lower_bounds, upper_bounds, bin_specs[0], offsets_specs[0])]
@@ -89,27 +89,6 @@ def grid_state(state, grid):
     for i in range(len(state)):
         coordinate = np.append(coordinate, bisect.bisect(grid[i], state[i]))
     return coordinate
-
-# Tiling function
-#
-# Description: Calls grid functions in order to create the tiles
-# Each row of the tiles represents one row of one grid with values
-# representing the cutoffs for the bins for that row.
-# Each set of rows represents one grid.
-# The tiling is the multi-layered grid creating from offsetting
-# each grid and combining them together.
-# @return: The tiles
-def tile():
-    # Make one grid
-    grid = make_grid()
-    # print("Grid shape:", grid.shape) # Delete
-    # print("Grid:", grid) # Delete
-    # Make all grids
-    grids = make_grids()
-    print("Shape of completed tiles:", grids.shape) # Delete
-    print("Tiles:") # Delete
-    print(grids) # Delete
-    return grids
 
 # Map state function
 #
@@ -225,6 +204,8 @@ def main():
     # print("Action space:", env.action_space)
     # Tile states
     tiles = tile()
+    print("Tiles:") # Delete
+    print(tiles) # Delete
     # For data collection
     trial = []
     episode = []
