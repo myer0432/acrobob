@@ -173,6 +173,11 @@ class TiledQTable:
     def __init__(self, lower_bounds, upper_bounds, bin_specs, offsets_specs, actions):
 
         self.tiles = tile(lower_bounds, upper_bounds, bin_specs, offsets_specs)
+        self.bins = bin_specs
+        self.actions = actions
+        self.qtables = np.array([])
+
+        qtables = []
 
 
 
@@ -218,9 +223,7 @@ def main():
 
     print("Tiles:") # Delete
     print(tiles) # Delete
-    print(tiles.shape)
-    state_sizes = [tuple(len(splits)+1 for splits in tiling_grid) for tiling_grid in tiles]
-    print(state_sizes)
+
     # For data collection
     trial = []
     episode = []
