@@ -12,8 +12,9 @@ np.set_printoptions(precision=3, linewidth=120)
 # Static variables
 LOWER_BOUNDS = [-1 * math.pi, -1 * math.pi, -12.566, -28.274]
 UPPER_BOUNDS = [math.pi, math.pi, 12.566, 28.274]
-BINS = [10, 10, 10, 10]
-OFFSET = [-0.1, 0.1, 0.1, 0.1] # Offsets should be < bin size which is currently 0.2
+BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
+OFFSETS = [[0.1, 0.1, 2, 4], [-0.1, -0.1, -2, -4], [0.05, -0.05, -1, 2]] # Offsets should be < bin size which is currently 0.2
+ACTIONS = [0, 1, 2] #0 = torque -1 (counter-clockwise), 1 = torque 0, 2 = torque +1 (clockwise)
 
 # Process states function
 #
@@ -167,6 +168,14 @@ def visualize_encoded_samples(samples, encoded_samples, tilings, low=None, high=
     ax.set_title("Tile-encoded samples")
     return ax
 
+class TiledQTable:
+
+    def __init__(self, lower_bounds, upper_bounds, bin_specs, offsets_specs, actions):
+
+        self.tiles = tile(lower_bounds, upper_bounds, bin_specs, offsets_specs)
+
+
+
 ########
 # Main #
 ########
@@ -203,9 +212,15 @@ def main():
     # Explore action space
     # print("Action space:", env.action_space)
     # Tile states
-    tiles = tile()
+    tiles = tile(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS)
+
+
+
     print("Tiles:") # Delete
     print(tiles) # Delete
+    print(tiles.shape)
+    state_sizes = [tuple(len(splits)+1 for splits in tiling_grid) for tiling_grid in tiles]
+    print(state_sizes)
     # For data collection
     trial = []
     episode = []
@@ -219,12 +234,18 @@ def main():
                 env.render()
                 # Take an action
                 if observation is None: # If this is the first action
-                    observation = env.step(env.action_space.sample()) # Take a random action
+                    action = env.action_space.sample()
+                    observation = env.step(action) # Take a random action
                 else: # If this is not the first action
                     # TODO: Take action by policy
-                    observation = env.step(env.action_space.sample())
+                    action = env.action_space.sample()
+                    observation = env.step(action)
                 # Record new state
                 state = process_state(observation[0])
+                coordinates = map_state(state, tiles)
+                print("Action: ", action)
+                print("State: ", state)
+                print("State Coor: ", coordinates)
                 trial.append(state)
                 print("Trial " + str(t) + ":")
                 print(state)
