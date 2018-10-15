@@ -258,7 +258,7 @@ def main():
     RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
-    trials = range(1, 11) # Number of trials
+    trials = range(1, 6) # Number of trials
     for trial in trials:
         env.reset()
         experiment = [[], [], []]
@@ -319,7 +319,7 @@ def main():
                                cycler('linestyle', [':', ':', ':', ':'])))
     for i in range(len(data)):
         plt.plot(steps, data[i][2])
-    plt.plot(steps, averaged_rewards, color="black", label="Running Average")
+    plt.plot(steps, averaged_rewards, color="black", label="Running Average of all Trials")
     plt.legend()
     plt.show()
 
