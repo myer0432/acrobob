@@ -8,7 +8,7 @@ import random
 from cycler import cycler
 
 # Configure plotting
-plt.style.use('ggplot')
+plt.style.use('classic')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
@@ -307,12 +307,6 @@ def main():
     plt.ylabel("Reward")
     plt.plot(steps, averaged_rewards, "blue", label="Running Average")
     plt.legend()
-    plot_margin = 0.5
-    x0, x1, y0, y1 = plt.axis()
-    plt.axis((x0 - plot_margin,
-              x1 + plot_margin,
-              y0 - plot_margin,
-              y1 + plot_margin))
     plt.show()
 
     # All trials with average
@@ -327,11 +321,6 @@ def main():
         plt.plot(steps, data[i][2])
     plt.plot(steps, averaged_rewards, color="black", label="Running Average")
     plt.legend()
-    x0, x1, y0, y1 = plt.axis()
-    plt.axis((x0 - plot_margin,
-              x1 + plot_margin,
-              y0 - plot_margin,
-              y1 + plot_margin))
     plt.show()
 
 if __name__ == "__main__":
