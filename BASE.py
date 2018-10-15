@@ -8,7 +8,6 @@ import random
 from cycler import cycler
 
 # Configure plotting
-plt.style.use('ggplot')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
