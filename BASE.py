@@ -8,6 +8,7 @@ import random
 from cycler import cycler
 
 # Configure plotting
+plt.style.use('bmh')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
@@ -246,11 +247,6 @@ def main():
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            # if reward == 0:
-            #     running_reward += 1
-            #     reward = running_reward
-            # else:
-            #     running_reward = 0
             table.update(previous_state, action, state, reward, ALPHA, GAMMA)
 
     ###############
