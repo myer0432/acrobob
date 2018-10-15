@@ -9,7 +9,7 @@ from cycler import cycler
 
 # Configure plotting
 plt.style.use('classic')
-np.set_printoptions(precision=3, linewidth=120)
+#np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
 ALPHA = 0.2
@@ -171,6 +171,10 @@ class QTable:
                 index = row[j]
                 self.table[action][i][j][index] = value
 
+    # Reset the Q table
+    def reset(self):
+        self.table = np.zeros(self.shape, dtype="float")
+
     # Set Q value
     #
     # @param state: The state
@@ -205,14 +209,14 @@ class QTable:
         previous_Qval = self.getQ(previous_state, previous_action) # Q(s_t, a_t)
 
         ################## Bellman equation for SARSA ###################
-        action = self.chooseAction(state, EPSILON)
-        current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
-        new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
+        # action = self.chooseAction(state, EPSILON)
+        # current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
+        # new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
         #################################################################
 
         ################## Equation for Q-Learning ######################
-        # max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
-        # new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
+        max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
+        new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
         #################################################################
         self.setQ(previous_state, previous_action, new_Qval)
 
@@ -228,48 +232,32 @@ def main():
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
+
+    print("State space:")
+    print(table.table.shape)
+
     ############
     # Training #
     ############
-    observation = None # Priming
-    ttrials = range(1, 6) # Training sessions
-    steps = range(1, 5001) # Steps per session/trial
-    for ttrial in ttrials:
-        env.reset()
-        print("### Training trial", ttrial, "###")
-        for step in steps:
-            # Take an action
-            if observation is None: # If this is the first action
-                previous_state = [0, 0, 0, 0]
-                action = env.action_space.sample()
-                observation = env.step(action) # Take a random action
-            else: # If this is not the first action
-                previous_state = state
-                action = table.chooseAction(state, EPSILON)
-                observation = env.step(action)
-            # Record new state
-            state = process_state(observation[0])
-            reward = observation[1]
-            table.update(previous_state, action, state, reward, ALPHA, GAMMA)
-
-    ###############
-    # Experiments #
-    ###############
-    RENDER = False # Enable to render last trial of last experiment
+    #RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
-    trials = range(1, 6) # Number of trials
+    steps = range(1, 50001) # Steps per session/trial
+    trials = range(1, 11) # Number of trials
+    best_trial = -1
+    best_table = table
     for trial in trials:
-        env.reset()
-        experiment = [[], [], []]
-        rewards = []
-        if RENDER and trial == len(trials):
-            input("Begin rendering?")
-        print("### Experimental Trial", trial, "###")
+        table.reset() # Reset learning for next agent
+        env.reset() # Reset environment
+        experiment = [[], [], []] # Data
+        rewards = [] # Running reward
+        #if RENDER and trial == len(trials):
+            #input("Begin rendering?")
+        print("### Training trial", trial, "###")
         for step in steps:
             # Render last trial
-            if RENDER and trial == len(trials):
-                env.render()
+            #if RENDER and trial == len(trials):
+                #env.render()
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
@@ -289,39 +277,114 @@ def main():
             experiment[1].append(reward)
             experiment[2].append(sum(rewards) / float(step))
         data.append(experiment)
+        if (sum(rewards) / float(step)) > best_trial:
+            best_trial = sum(rewards) / float(step)
+            best_table = table
+
+    print("best table before testing:")
+    print(best_table.table)
+
+    ###########
+    # Testing #
+    ###########
+    RENDER = False # Enable to render last trial of last experiment
+    tdata = [] # Data collection
+    observation = None # Priming
+    tsteps = range(1, 20001) # Steps per session/trial
+    ttrials = range(1, 11) # Number of trials
+    for ttrial in ttrials:
+        env.reset() # Reset environment
+        test = [[], [], []] # Data
+        rewards = [] # Running reward
+        if RENDER and ttrial == len(ttrials):
+            input("Begin rendering?")
+        print("### Trial", ttrial, "###")
+        for tstep in tsteps:
+            # Render last trial
+            if RENDER and ttrial == len(ttrials):
+                env.render()
+            # Take an action
+            if observation is None: # If this is the first action
+                previous_state = [0, 0, 0, 0]
+                action = env.action_space.sample()
+                observation = env.step(action) # Take a random action
+            else: # If this is not the first action
+                previous_state = state
+                action = best_table.chooseAction(state, EPSILON)
+                observation = env.step(action)
+            # Record new state
+            state = process_state(observation[0])
+            reward = observation[1]
+            # Data collection
+            rewards.append(reward)
+            test[0].append(state)
+            test[1].append(reward)
+            test[2].append(sum(rewards) / float(tstep))
+        tdata.append(test)
     env.close()
 
     #################
     # Visualization #
     #################
-
-    # Average of trials
+    # Average of training trials
     averaged_rewards = np.array(data[0][2])
     for i in range(1, len(data)):
         averaged_rewards += data[i][2]
     averaged_rewards /= len(data)
+    # Save data
+    file = open("Q_training.txt", "w")
+    for value in averaged_rewards:
+        file.write(str(value) + "\n")
+    file.close()
+
+    # Average of testing trials
+    taveraged_rewards = np.array(tdata[0][2])
+    for i in range(1, len(tdata)):
+        taveraged_rewards += tdata[i][2]
+    taveraged_rewards /= len(tdata)
+    # Save data
+    file = open("Q_testing.txt", "w")
+    for value in taveraged_rewards:
+        file.write(str(value) + "\n")
+    file.close()
+
+    # Average of all training trials
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
-    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
-    plt.xlabel("Steps")
-    plt.ylabel("Reward")
-    plt.plot(steps, averaged_rewards, "blue", label="Running Average")
+    plt.figtext(.5,.9,"Q-Learning Training Performance", fontsize=20, ha="center")
+    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
+    #plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
+    plt.xlabel("Steps", fontsize=18)
+    plt.ylabel("Reward", fontsize=18)
+    plt.plot(steps, averaged_rewards, "blue", label="Running Average", linewidth=3)
     plt.legend()
     plt.show()
 
-    # All trials with average
+    # Average of all testing trials
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
-    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
-    plt.xlabel("Steps")
-    plt.ylabel("Reward")
-    plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
-                               cycler('linestyle', [':', ':', ':', ':'])))
-    for i in range(len(data)):
-        plt.plot(steps, data[i][2])
-    plt.plot(steps, averaged_rewards, color="black", label="Running Average of all Trials")
+    plt.figtext(.5,.9,"Q-Learning Testing Performance", fontsize=20, ha="center")
+    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
+    #plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
+    plt.xlabel("Steps", fontsize=18)
+    plt.ylabel("Reward", fontsize=18)
+    plt.plot(tsteps, taveraged_rewards, "blue", label="Running Average", linewidth=3)
     plt.legend()
     plt.show()
+
+    # # All trials with average
+    # plt.axes([.1,.1,.8,.7])
+    # plt.figtext(.5,.9,"Q-Learning Performance", fontsize=20, ha="center")
+    # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
+    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
+    # plt.xlabel("Steps", fontsize=18)
+    # plt.ylabel("Reward", fontsize=18)
+    # # plt.rc('axes', prop_cycle=(cycler('color', ['r', 'y', 'g', 'c', 'b', 'm']) +
+    # #                            cycler('linestyle', ['-', '-', '-', '-', '-', '-'])))
+    # plt.plot(steps, data[0][2], color="blue", label="Agent Trials")
+    # for i in range(1, len(data)):
+    #     plt.plot(steps, data[i][2], color="blue")
+    # plt.plot(steps, averaged_rewards, color="black", label="Running Average of all Agents", linewidth=3)
+    # plt.legend()
+    # plt.show()
 
 if __name__ == "__main__":
     main()
