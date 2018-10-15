@@ -229,13 +229,12 @@ def main():
     # Training #
     ############
     observation = None # Priming
-    sessions = range(1, 6) # Training sessions
+    ttrials = range(1, 6) # Training sessions
     steps = range(1, 5001) # Steps per session/trial
-    for session in sessions:
+    for ttrial in ttrials:
         env.reset()
-        print("### Training session", session, "###")
+        print("### Training trial", ttrial, "###")
         for step in steps:
-            # print("### Training session", session, ", Step", step, "###")
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
@@ -258,25 +257,21 @@ def main():
     ###############
     # Experiments #
     ###############
-
-    #input("Begin experiments?")
+    RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
-    render = False
     trials = range(1, 11) # Number of trials
     for trial in trials:
         env.reset()
-        if trial == len(trials):
-            input("Begin rendering?")
-            render = True
-        print("### Trial", trial, "###")
         experiment = [[], [], []]
         rewards = []
+        if RENDER:
+            input("Begin rendering?")
+        print("### Experimental Trial", trial, "###")
         for step in steps:
-            # Render
-            #if render:
-                #env.render()
-            # print("### Trial", trial, ", Step", step, "###")
+            # Render last trial
+            if RENDER and trial == len(trials):
+                env.render()
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
@@ -295,11 +290,6 @@ def main():
             experiment[0].append(state)
             experiment[1].append(reward)
             experiment[2].append(sum(rewards) / float(step))
-            # theta1.append(state[0])
-            # theta2.append(state[1])
-            # omega1.append(state[2])
-            # omega2.append(state[3])
-            # rewards.append(reward)
         data.append(experiment)
     env.close()
 
@@ -307,54 +297,43 @@ def main():
     # Visualization #
     #################
 
-    # Separate trials
-    # plt.title("SARSA Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
-    plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
-    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
-    plt.xlabel("Steps")
-    plt.ylabel("Average Reward")
-    plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
-                               cycler('linestyle', ['-', '--', ':', '-.'])))
-    for i in range(len(data)):
-        plt.plot(steps, data[i][2])
-    # plt.plot(steps, data[0][2], color="blue")
-    # plt.plot(steps, data[1][2], color="red")
-    # plt.plot(steps, data[2][2], color="green")
-    # plt.plot(steps, data[3][2], color="orange")
-    # plt.plot(steps, data[4][2], color="cyan")
-    plt.show()
-
     # Average of trials
     averaged_rewards = np.array(data[0][2])
     for i in range(1, len(data)):
         averaged_rewards += data[i][2]
     averaged_rewards /= len(data)
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Average SARSA Performance", fontsize=18, ha="center")
+    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
     plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
     plt.xlabel("Steps")
-    plt.ylabel("Average Reward")
-    plt.plot(steps, averaged_rewards, "blue")
+    plt.ylabel("Reward")
+    plt.plot(steps, averaged_rewards, "blue", label="Running Average")
+    plt.legend()
+    plot_margin = 0.5
+    x0, x1, y0, y1 = plt.axis()
+    plt.axis((x0 - plot_margin,
+              x1 + plot_margin,
+              y0 - plot_margin,
+              y1 + plot_margin))
     plt.show()
 
-    # Both
+    # All trials with average
     plt.axes([.1,.1,.8,.7])
     plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
     plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
     plt.xlabel("Steps")
-    plt.ylabel("Average Reward")
+    plt.ylabel("Reward")
     plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
-                               cycler('linestyle', ['-', '--', ':', '-.'])))
+                               cycler('linestyle', [':', ':', ':', ':'])))
     for i in range(len(data)):
         plt.plot(steps, data[i][2])
-    plt.plot(steps, averaged_rewards, color="black", label="Average")
-
-    # plt.plot(steps, data[0][2], color="blue")
-    # plt.plot(steps, data[1][2], color="red")
-    # plt.plot(steps, data[2][2], color="green")
-    # plt.plot(steps, data[3][2], color="orange")
-    # plt.plot(steps, data[4][2], color="cyan")
+    plt.plot(steps, averaged_rewards, color="black", label="Running Average")
+    plt.legend()
+    x0, x1, y0, y1 = plt.axis()
+    plt.axis((x0 - plot_margin,
+              x1 + plot_margin,
+              y0 - plot_margin,
+              y1 + plot_margin))
     plt.show()
 
 if __name__ == "__main__":
