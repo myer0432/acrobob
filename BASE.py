@@ -114,6 +114,10 @@ def map_state(state, grids):
 ###########
 # Q Table #
 ###########
+
+# QTable class
+#
+# Description: Used to hold Q values for the agent's policy.
 class QTable:
     # Constructor for a TiledQTable
     #
@@ -224,7 +228,6 @@ def main():
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
-    # running_reward = 0
     ############
     # Training #
     ############
@@ -260,7 +263,7 @@ def main():
         env.reset()
         experiment = [[], [], []]
         rewards = []
-        if RENDER:
+        if RENDER and trial == len(trials):
             input("Begin rendering?")
         print("### Experimental Trial", trial, "###")
         for step in steps:
