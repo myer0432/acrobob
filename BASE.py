@@ -4,21 +4,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 import bisect
 import math
+import random
+from cycler import cycler
 
 # Configure plotting
 plt.style.use('ggplot')
 np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
+ALPHA = 0.2
+GAMMA = 0.9
+EPSILON = 0.9
 LOWER_BOUNDS = [-1 * math.pi, -1 * math.pi, -12.566, -28.274]
 UPPER_BOUNDS = [math.pi, math.pi, 12.566, 28.274]
 BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
-OFFSETS = [[0.1, 0.1, 2, 4], [-0.1, -0.1, -2, -4], [0.05, -0.05, -1, 2]] # Offsets should be < bin size which is currently 0.2
+# The first grid is not offset
+# The second grid is offset to the right by ~ 1/3 * the width of one bin
+# The third grid is offset to the right by ~ 2/3 * the width of one bin
+OFFSETS = [[0, 0, 0, 0], [0.1, 0.1, 0.418867, 0.942467], [0.2, 0.2, 0.83773, 1.88493]]
 ACTIONS = [0, 1, 2] #0 = torque -1 (counter-clockwise), 1 = torque 0, 2 = torque +1 (clockwise)
 
 # Process states function
-#
 # Description: Reduces the state space by getting theta
+#
 # from costheta and sintheta
 # @param state: the agent's raw state
 # @return processed_state: the agent's processed state
@@ -35,15 +43,14 @@ def process_state(state):
 ##########
 
 # Create one grid
-#
 # Description: Creates a grid for tile coding
+#
 # @param lower_bounds: Lower bounds of state space
 # @param upper_bounds:  Upper bounds of state action_space
 # @param bins: Dimension specifying the number bins
 # @param offsets: Value by which grid layers should be offset from each other
 # @return: The tiles
-def make_grid(lower_bounds = [-1.0, -5.0], upper_bounds = [1.0, 5.0],
-bins = [10, 10], offsets = [-0.1, 0.5]):
+def make_grid(lower_bounds, upper_bounds, bins, offsets):
     # Bounds must be of same dimension
     if (len(lower_bounds) != len(bins) or len(upper_bounds) != len(bins) or len(offsets) != len(bins)):
         return -1;
@@ -58,15 +65,14 @@ bins = [10, 10], offsets = [-0.1, 0.5]):
     return grid
 
 # Create the grids
-#
 # Description: Creates a grid for tile coding
+#
 # @param lower_bounds: Lower bounds of state space
 # @param upper_bounds:  Upper bounds of state action_space
 # @param bin_specs: Dimension specifying the number bins
 # @param offsets_specs: Value by which grid layers should be offset from each other
 # @return: The tiles
-def tile(lower_bounds = [-1.0, -5.0], upper_bounds = [1.0, 5.0],
-bin_specs = [[10, 10], [10,10]], offsets_specs = [[-0.1, 0.5], [0, 0.4]]):
+def tile(lower_bounds, upper_bounds, bin_specs, offsets_specs):
     # First grid
     grids = [make_grid(lower_bounds, upper_bounds, bin_specs[0], offsets_specs[0])]
     # Iterate through all subsequent bins
@@ -75,8 +81,8 @@ bin_specs = [[10, 10], [10,10]], offsets_specs = [[-0.1, 0.5], [0, 0.4]]):
     return grids
 
 # Grid state function
-#
 # Description: Maps the state to a grid and returns the coordinates
+#
 # @param state: The state to map
 # @param grid: The grid to map it to
 # @return: The coordinates of the state in the grid
@@ -85,15 +91,15 @@ def grid_state(state, grid):
     if (len(state) != (grid.shape)[0]):
         return -1
     # To hold rows of pairs each representing coordinates in a row of the grid
-    coordinate = np.array([], dtype = "int64")
+    coordinate = np.array([], dtype="int64")
     # Iterate through each row of the grid
     for i in range(len(state)):
         coordinate = np.append(coordinate, bisect.bisect(grid[i], state[i]))
     return coordinate
 
 # Map state function
-#
 # Description: Maps the state to a single spot in the multi-layered grid
+#
 # @param state: The state to map
 # @param grid: The multi-layered grid to map it to
 # @return: The coordinates of the state in the grid
@@ -105,155 +111,251 @@ def map_state(state, grids):
         coordinates = np.append(coordinates, [grid_state(state, grids[i])], axis=0)
     return coordinates
 
-##########################
-# Visualization - Delete #
-##########################
-from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
-# Visualize tiles
-def visualize_tilings(tilings):
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-    linestyles = ['-', '--', ':']
-    legend_lines = []
-    fig, ax = plt.subplots(figsize=(10, 10))
-    for i, grid in enumerate(tilings):
-        for x in grid[0]:
-            l = ax.axvline(x=x, color=colors[i % len(colors)], linestyle=linestyles[i % len(linestyles)], label=i)
-        for y in grid[1]:
-            l = ax.axhline(y=y, color=colors[i % len(colors)], linestyle=linestyles[i % len(linestyles)])
-        legend_lines.append(l)
-    ax.grid(False)
-    ax.legend(legend_lines, ["Tiling #{}".format(t) for t in range(len(legend_lines))], facecolor='white', framealpha=0.9)
-    ax.set_title("Tilings")
-    return ax  # return Axis object to draw on later, if needed
-# Visualize with samples
-def visualize_encoded_samples(samples, encoded_samples, tilings, low=None, high=None):
-    """Visualize samples by activating the respective tiles."""
-    samples = np.array(samples)  # for ease of indexing
-    # Show tiling grids
-    ax = visualize_tilings(tilings)
-    # If bounds (low, high) are specified, use them to set axis limits
-    if low is not None and high is not None:
-        ax.set_xlim(low[0], high[0])
-        ax.set_ylim(low[1], high[1])
-    else:
-        # Pre-render (invisible) samples to automatically set reasonable axis limits, and use them as (low, high)
-        ax.plot(samples[:, 0], samples[:, 1], 'o', alpha=0.0)
-        low = [ax.get_xlim()[0], ax.get_ylim()[0]]
-        high = [ax.get_xlim()[1], ax.get_ylim()[1]]
-    # Map each encoded sample (which is really a list of indices) to the corresponding tiles it belongs to
-    tilings_extended = [np.hstack((np.array([low]).T, grid, np.array([high]).T)) for grid in tilings]  # add low and high ends
-    tile_centers = [(grid_extended[:, 1:] + grid_extended[:, :-1]) / 2 for grid_extended in tilings_extended]  # compute center of each tile
-    tile_toplefts = [grid_extended[:, :-1] for grid_extended in tilings_extended]  # compute topleft of each tile
-    tile_bottomrights = [grid_extended[:, 1:] for grid_extended in tilings_extended]  # compute bottomright of each tile
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-    for sample, encoded_sample in zip(samples, encoded_samples):
-        for i, tile in enumerate(encoded_sample):
-            # Shade the entire tile with a rectangle
-            topleft = tile_toplefts[i][0][tile[0]], tile_toplefts[i][1][tile[1]]
-            bottomright = tile_bottomrights[i][0][tile[0]], tile_bottomrights[i][1][tile[1]]
-            ax.add_patch(Rectangle(topleft, bottomright[0] - topleft[0], bottomright[1] - topleft[1],
-                                   color=colors[i], alpha=0.33))
-            # In case sample is outside tile bounds, it may not have been highlighted properly
-            if any(sample < topleft) or any(sample > bottomright):
-                # So plot a point in the center of the tile and draw a connecting line
-                cx, cy = tile_centers[i][0][tile[0]], tile_centers[i][1][tile[1]]
-                ax.add_line(Line2D([sample[0], cx], [sample[1], cy], color=colors[i]))
-                ax.plot(cx, cy, 's', color=colors[i])
-    # Finally, plot original samples
-    ax.plot(samples[:, 0], samples[:, 1], 'o', color='r')
-    ax.margins(x=0, y=0)  # remove unnecessary margins
-    ax.set_title("Tile-encoded samples")
-    return ax
-
-class TiledQTable:
-
+###########
+# Q Table #
+###########
+class QTable:
+    # Constructor for a TiledQTable
+    #
+    # @param lower_bounds: Lower bounds of state space
+    # @param upper_bounds:  Upper bounds of state action_space
+    # @param bin_specs: Dimension specifying the number bins
+    # @param offsets_specs: Value by which grid layers should be offset from each other
+    # @param actions: The agent's action action_space
     def __init__(self, lower_bounds, upper_bounds, bin_specs, offsets_specs, actions):
-
         self.tiles = tile(lower_bounds, upper_bounds, bin_specs, offsets_specs)
-        self.bins = bin_specs
-        self.actions = actions
-        self.qtables = np.array([])
+        temp = list(self.tiles.shape)
+        temp[2] += 1
+        tup = tuple(temp)
+        self.shape = (len(actions),) + tup
+        self.table = np.zeros(self.shape, dtype="float")
 
-        qtables = []
+    # Get Q value
+    #
+    # @param state: The state
+    # @param action: The action
+    # @return: The Q value for that state-action pair
+    def getQ(self, state, action):
+        # Get coordinates
+        coordinates = map_state(state, self.tiles)
+        # Find the Q value
+        sum = 0
+        count = 0
+        # Each row of coordinates
+        for i in range(len(coordinates)):
+            row = coordinates[i]
+            # Each index in the row
+            for j in range(len(row)):
+                index = row[j]
+                sum += self.table[action][i][j][index]
+                count += 1
+        return sum / count
 
+    # Set Q value
+    #
+    # @param state: The state
+    # @param action: The action
+    # @param value: The Q value to set for that state-action pair
+    def setQ(self, state, action, value):
+        # Get coordinates
+        coordinates = map_state(state, self.tiles)
+        # Each row of coordinates
+        for i in range(len(coordinates)):
+            row = coordinates[i]
+            # Each index in the row
+            for j in range(len(row)):
+                index = row[j]
+                self.table[action][i][j][index] = value
 
+    # Set Q value
+    #
+    # @param state: The state
+    # @param action: The action
+    # @param epsilon: for epsilon greedy action choice, 0 <= epsilon <= 1
+    # @param value: The Q value to set for that state-action pair
+    def chooseAction(self, state, epsilon):
+        # If random float is greater than epsilon, choose random action
+        if (random.random() > epsilon):
+            return (random.choice(ACTIONS))
+        else:
+            max_action = 0
+            max_q = self.getQ(state, 0)
+            for action in np.arange(1, len(self.table)):
+                if self.getQ(state, action) > max_q:
+                    max_action = action
+            return max_action
+        return -1
+
+    # Update policy
+    #
+    # Description: This function updates the agent's
+    # policy given the reward from the last state-action pair.
+    #
+    # @param previous_state: The previous state
+    # @param previous_action: The action taken from the previous state
+    # @param state: The state the agent is now in
+    # @param reward: The reward given for the last action
+    # @param alpha: The learning rate alpha
+    # @param gamma: The dicount factor gamma
+    def update(self, previous_state, previous_action, state, reward, alpha, gamma):
+        previous_Qval = self.getQ(previous_state, previous_action) # Q(s_t, a_t)
+
+        ################## Bellman equation for SARSA ###################
+        action = self.chooseAction(state, EPSILON)
+        current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
+        new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
+        #################################################################
+
+        ################## Equation for Q-Learning ######################
+        # max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
+        # new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
+        #################################################################
+        self.setQ(previous_state, previous_action, new_Qval)
+
+        return new_Qval # delete
 
 ########
 # Main #
 ########
 def main():
-    ####################
-    # Testing - Delete #
-    ####################
-    # States to test
-    # states = np.array([np.array([-0.85, -2]), np.array([0, 0]), np.array([1, 1])])
-    # tiles = tile()
-    # Tile states
-    # tiled_states = np.array([map_state(states[0], tiles)])
-    # for i in np.arange(1, len(states)):
-    #     coordinates = map_state(states[i], tiles)
-    #     tiled_states = np.append(tiled_states, [coordinates], 0)
-    # print("Coors Shape: ", coordinates.shape)
-    # print("Coors: ", coordinates)
-    #plt.subplot(visualize_tilings(grids))
-    #plt.show()
-    #plt.subplot(visualize_encoded_samples(states, encoded_states, grids))
-    #plt.show()
-
     #########
     # Begin #
     #########
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
-    observations = []
-    observation = None
-    # Explore state (observation) space [delete]
-    # print("State space: ", env.observation_space)
-    # print("State space min (raw):", env.observation_space.low)
-    # print("State space max (raw):", env.observation_space.high)
-    # Explore action space
-    # print("Action space:", env.action_space)
-    # Tile states
-    tiles = tile(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS)
+    table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
+    # running_reward = 0
+    ############
+    # Training #
+    ############
+    observation = None # Priming
+    sessions = range(1, 6) # Training sessions
+    steps = range(1, 5001) # Steps per session/trial
+    for session in sessions:
+        env.reset()
+        print("### Training session", session, "###")
+        for step in steps:
+            # print("### Training session", session, ", Step", step, "###")
+            # Take an action
+            if observation is None: # If this is the first action
+                previous_state = [0, 0, 0, 0]
+                action = env.action_space.sample()
+                observation = env.step(action) # Take a random action
+            else: # If this is not the first action
+                previous_state = state
+                action = table.chooseAction(state, EPSILON)
+                observation = env.step(action)
+            # Record new state
+            state = process_state(observation[0])
+            reward = observation[1]
+            # if reward == 0:
+            #     running_reward += 1
+            #     reward = running_reward
+            # else:
+            #     running_reward = 0
+            table.update(previous_state, action, state, reward, ALPHA, GAMMA)
 
+    ###############
+    # Experiments #
+    ###############
 
-
-    print("Tiles:") # Delete
-    print(tiles) # Delete
-
-    # For data collection
-    trial = []
-    episode = []
-    # Go
-    run = True
-    if run:
-        for e in range (1):
-            env.reset()
-            for t in range(0, 10):
-                # Render
-                env.render()
-                # Take an action
-                if observation is None: # If this is the first action
-                    action = env.action_space.sample()
-                    observation = env.step(action) # Take a random action
-                else: # If this is not the first action
-                    # TODO: Take action by policy
-                    action = env.action_space.sample()
-                    observation = env.step(action)
-                # Record new state
-                state = process_state(observation[0])
-                coordinates = map_state(state, tiles)
-                print("Action: ", action)
-                print("State: ", state)
-                print("State Coor: ", coordinates)
-                trial.append(state)
-                print("Trial " + str(t) + ":")
-                print(state)
-            episode.append(trial)
+    #input("Begin experiments?")
+    data = [] # Data collection
+    observation = None # Priming
+    render = False
+    trials = range(1, 11) # Number of trials
+    for trial in trials:
+        env.reset()
+        if trial == len(trials):
+            input("Begin rendering?")
+            render = True
+        print("### Trial", trial, "###")
+        experiment = [[], [], []]
+        rewards = []
+        for step in steps:
+            # Render
+            #if render:
+                #env.render()
+            # print("### Trial", trial, ", Step", step, "###")
+            # Take an action
+            if observation is None: # If this is the first action
+                previous_state = [0, 0, 0, 0]
+                action = env.action_space.sample()
+                observation = env.step(action) # Take a random action
+            else: # If this is not the first action
+                previous_state = state
+                action = table.chooseAction(state, EPSILON)
+                observation = env.step(action)
+            # Record new state
+            state = process_state(observation[0])
+            reward = observation[1]
+            table.update(previous_state, action, state, reward, ALPHA, GAMMA)
+            # Data collection
+            rewards.append(reward)
+            experiment[0].append(state)
+            experiment[1].append(reward)
+            experiment[2].append(sum(rewards) / float(step))
+            # theta1.append(state[0])
+            # theta2.append(state[1])
+            # omega1.append(state[2])
+            # omega2.append(state[3])
+            # rewards.append(reward)
+        data.append(experiment)
     env.close()
+
+    #################
+    # Visualization #
+    #################
+
+    # Separate trials
+    # plt.title("SARSA Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
+    plt.axes([.1,.1,.8,.7])
+    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
+    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
+    plt.xlabel("Steps")
+    plt.ylabel("Average Reward")
+    plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
+                               cycler('linestyle', ['-', '--', ':', '-.'])))
+    for i in range(len(data)):
+        plt.plot(steps, data[i][2])
+    # plt.plot(steps, data[0][2], color="blue")
+    # plt.plot(steps, data[1][2], color="red")
+    # plt.plot(steps, data[2][2], color="green")
+    # plt.plot(steps, data[3][2], color="orange")
+    # plt.plot(steps, data[4][2], color="cyan")
+    plt.show()
+
+    # Average of trials
+    averaged_rewards = np.array(data[0][2])
+    for i in range(1, len(data)):
+        averaged_rewards += data[i][2]
+    averaged_rewards /= len(data)
+    plt.axes([.1,.1,.8,.7])
+    plt.figtext(.5,.9,"Average SARSA Performance", fontsize=18, ha="center")
+    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
+    plt.xlabel("Steps")
+    plt.ylabel("Average Reward")
+    plt.plot(steps, averaged_rewards, "blue")
+    plt.show()
+
+    # Both
+    plt.axes([.1,.1,.8,.7])
+    plt.figtext(.5,.9,"SARSA Performance", fontsize=18, ha="center")
+    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " trials",fontsize=10,ha="center")
+    plt.xlabel("Steps")
+    plt.ylabel("Average Reward")
+    plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
+                               cycler('linestyle', ['-', '--', ':', '-.'])))
+    for i in range(len(data)):
+        plt.plot(steps, data[i][2])
+    plt.plot(steps, averaged_rewards, color="black", label="Average")
+
+    # plt.plot(steps, data[0][2], color="blue")
+    # plt.plot(steps, data[1][2], color="red")
+    # plt.plot(steps, data[2][2], color="green")
+    # plt.plot(steps, data[3][2], color="orange")
+    # plt.plot(steps, data[4][2], color="cyan")
+    plt.show()
 
 if __name__ == "__main__":
     main()
