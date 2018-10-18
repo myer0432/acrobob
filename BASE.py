@@ -12,6 +12,7 @@ from cycler import cycler
 plt.style.use('classic')
 
 # Static variables
+MODE = 0 # 0 = Q-Learning and SARSA, 1 = Double SARSA
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
@@ -271,7 +272,8 @@ def main():
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
-    # dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS) # Enable for Double SARSA
+    if MODE == 1: # If double SARSA
+        dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
     ############
     # Training #
     ############
@@ -282,10 +284,12 @@ def main():
     trials = range(1, 6) # Number of trials
     best_trial = -1
     best_table = table
-    # best_dtable = dtable # Enable for double SARSA
+    if MODE == 1:
+        best_dtable = dtable
     for trial in trials:
         table.reset() # Reset learning for next agent
-        # dtable.reset() # Enable for double SARSA
+        if MODE == 1:
+            dtable.reset()
         env.reset() # Reset environment
         experiment = [[], [], []] # Data
         rewards = [] # Running reward
@@ -303,20 +307,22 @@ def main():
                 observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                action = table.chooseAction(state, EPSILON) #Enable for Q and SARSA
-                # action = table.chooseDoubleAction(dtable,state, EPSILON) # Enable for double SARSA
+                if MODE == 0:
+                    action = table.chooseAction(state, EPSILON)
+                elif MODE == 1:
+                    action = table.chooseDoubleAction(dtable,state, EPSILON)
                 observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            table.update(previous_state, action, state, reward, ALPHA, GAMMA) # Enable for Q and SARSA
-            ############# Enable for double SARSA ##############
-            # flip = np.random.randint(2)
-            # if flip == 0:
-            #     table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
-            # elif flip == 1:
-            #     dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
-            ####################################################
+            if MODE == 0:
+                table.update(previous_state, action, state, reward, ALPHA, GAMMA)
+            elif MODE == 1:
+                flip = np.random.randint(2)
+                if flip == 0:
+                    table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
+                elif flip == 1:
+                    dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
             # Data collection
             rewards.append(reward)
             experiment[0].append(state)
@@ -326,7 +332,8 @@ def main():
         if (sum(rewards) / float(step)) > best_trial:
             best_trial = sum(rewards) / float(step)
             best_table = table
-            #best_dtable = dtable # Enable for double SARSA
+            if MODE == 1:
+                best_dtable = dtable
 
     ###########
     # Testing #
@@ -354,8 +361,10 @@ def main():
                 observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                action = best_table.chooseAction(state, EPSILON) # Enable for Q and SARSA
-                # action = table.chooseDoubleAction(dtable,state, EPSILON) # Enable for double SARSA
+                if MODE == 0:
+                    action = best_table.chooseAction(state, EPSILON)
+                elif MODE == 1:
+                    action = table.chooseDoubleAction(dtable,state, EPSILON)
                 observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
