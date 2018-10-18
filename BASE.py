@@ -2,6 +2,7 @@ import sys
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerLine2D
 import bisect
 import math
 import random
@@ -9,7 +10,6 @@ from cycler import cycler
 
 # Configure plotting
 plt.style.use('classic')
-#np.set_printoptions(precision=3, linewidth=120)
 
 # Static variables
 ALPHA = 0.2
@@ -175,12 +175,11 @@ class QTable:
     def reset(self):
         self.table = np.zeros(self.shape, dtype="float")
 
-    # Set Q value
+    # Choose action by policy for Q and SARSA
     #
     # @param state: The state
-    # @param action: The action
     # @param epsilon: for epsilon greedy action choice, 0 <= epsilon <= 1
-    # @param value: The Q value to set for that state-action pair
+    # @return: The chosen action
     def chooseAction(self, state, epsilon):
         # If random float is greater than epsilon, choose random action
         if (random.random() > epsilon):
@@ -194,7 +193,25 @@ class QTable:
             return max_action
         return -1
 
-    # Update policy
+    # Choose action by policy for double SARSA
+    #
+    # @param other_table: The second table for double SARSA
+    # @param state: The state
+    # @param epsilon: for epsilon greedy action choice, 0 <= epsilon <= 1
+    # @return: The chosen action
+    def chooseDoubleAction(self, other_table, state, epsilon):
+        if (random.random() > epsilon):
+            return (random.choice(ACTIONS))
+        else:
+            max_action = 0
+            max_q = (self.getQ(state, 0) + other_table.getQ(state,0))/2
+            for action in np.arange(1, len(self.table)):
+                if (self.getQ(state, action)+other_table.getQ(state,0))/2 > max_q:
+                    max_action = action
+            return max_action
+        return -1
+
+    # Update policy for Q and SARSA
     #
     # Description: This function updates the agent's
     # policy given the reward from the last state-action pair.
@@ -209,18 +226,40 @@ class QTable:
         previous_Qval = self.getQ(previous_state, previous_action) # Q(s_t, a_t)
 
         ################## Bellman equation for SARSA ###################
-        # action = self.chooseAction(state, EPSILON)
-        # current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
-        # new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
+        action = self.chooseAction(state, EPSILON)
+        current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
+        new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
         #################################################################
 
         ################## Equation for Q-Learning ######################
-        max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
-        new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
+        # max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
+        # new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
         #################################################################
-        self.setQ(previous_state, previous_action, new_Qval)
 
+        self.setQ(previous_state, previous_action, new_Qval)
         return new_Qval # delete
+
+    # Update policy for double SARSA
+    #
+    # Description: This function updates the agent's
+    # policy given the reward from the last state-action pair.
+    #
+    # @param target_table: The table to use for choosing an action
+    # @param previous_state: The previous state
+    # @param previous_action: The action taken from the previous state
+    # @param state: The state the agent is now in
+    # @param reward: The reward given for the last action
+    # @param alpha: The learning rate alpha
+    # @param gamma: The dicount factor gamma
+    def double_update(self, target_table, previous_state, previous_action, state, reward, alpha, gamma):
+        previous_Qval = self.getQ(previous_state, previous_action) # Qx(s_t, a_t)
+        #################### Bellman equation for SARSA #######################
+        action = target_table.chooseAction(state, EPSILON)
+        current_Qval = target_table.getQ(state, action) # Qy(s_t+1, a_t+1)
+        new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
+        #######################################################################
+        self.setQ(previous_state, previous_action, new_Qval)
+        return new_Qval
 
 ########
 # Main #
@@ -232,22 +271,21 @@ def main():
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
-
-    print("State space:")
-    print(table.table.shape)
-
+    # dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS) # Enable for Double SARSA
     ############
     # Training #
     ############
     #RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
-    steps = range(1, 50001) # Steps per session/trial
-    trials = range(1, 11) # Number of trials
+    steps = range(1, 200001) # Steps per session/trial
+    trials = range(1, 6) # Number of trials
     best_trial = -1
     best_table = table
+    # best_dtable = dtable # Enable for double SARSA
     for trial in trials:
         table.reset() # Reset learning for next agent
+        # dtable.reset() # Enable for double SARSA
         env.reset() # Reset environment
         experiment = [[], [], []] # Data
         rewards = [] # Running reward
@@ -265,12 +303,20 @@ def main():
                 observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                action = table.chooseAction(state, EPSILON)
+                action = table.chooseAction(state, EPSILON) #Enable for Q and SARSA
+                # action = table.chooseDoubleAction(dtable,state, EPSILON) # Enable for double SARSA
                 observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            table.update(previous_state, action, state, reward, ALPHA, GAMMA)
+            table.update(previous_state, action, state, reward, ALPHA, GAMMA) # Enable for Q and SARSA
+            ############# Enable for double SARSA ##############
+            # flip = np.random.randint(2)
+            # if flip == 0:
+            #     table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
+            # elif flip == 1:
+            #     dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
+            ####################################################
             # Data collection
             rewards.append(reward)
             experiment[0].append(state)
@@ -280,9 +326,7 @@ def main():
         if (sum(rewards) / float(step)) > best_trial:
             best_trial = sum(rewards) / float(step)
             best_table = table
-
-    print("best table before testing:")
-    print(best_table.table)
+            #best_dtable = dtable # Enable for double SARSA
 
     ###########
     # Testing #
@@ -290,8 +334,8 @@ def main():
     RENDER = False # Enable to render last trial of last experiment
     tdata = [] # Data collection
     observation = None # Priming
-    tsteps = range(1, 20001) # Steps per session/trial
-    ttrials = range(1, 11) # Number of trials
+    tsteps = range(1, 50001) # Steps per session/trial
+    ttrials = range(1, 6) # Number of trials
     for ttrial in ttrials:
         env.reset() # Reset environment
         test = [[], [], []] # Data
@@ -310,7 +354,8 @@ def main():
                 observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                action = best_table.chooseAction(state, EPSILON)
+                action = best_table.chooseAction(state, EPSILON) # Enable for Q and SARSA
+                # action = table.chooseDoubleAction(dtable,state, EPSILON) # Enable for double SARSA
                 observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
@@ -326,16 +371,19 @@ def main():
     #################
     # Visualization #
     #################
+
+    #TODO: Add # of trials to figures
+
     # Average of training trials
     averaged_rewards = np.array(data[0][2])
     for i in range(1, len(data)):
         averaged_rewards += data[i][2]
     averaged_rewards /= len(data)
     # Save data
-    file = open("Q_training.txt", "w")
-    for value in averaged_rewards:
-        file.write(str(value) + "\n")
-    file.close()
+    # file = open("DSARSA_training.txt", "w")
+    # for value in averaged_rewards:
+    #     file.write(str(value) + "\n")
+    # file.close()
 
     # Average of testing trials
     taveraged_rewards = np.array(tdata[0][2])
@@ -343,47 +391,68 @@ def main():
         taveraged_rewards += tdata[i][2]
     taveraged_rewards /= len(tdata)
     # Save data
-    file = open("Q_testing.txt", "w")
-    for value in taveraged_rewards:
-        file.write(str(value) + "\n")
-    file.close()
+    # file = open("DSARSA_testing.txt", "w")
+    # for value in taveraged_rewards:
+    #     file.write(str(value) + "\n")
+    # file.close()
 
-    # Average of all training trials
-    plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Q-Learning Training Performance", fontsize=20, ha="center")
-    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
-    #plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
-    plt.xlabel("Steps", fontsize=18)
-    plt.ylabel("Reward", fontsize=18)
-    plt.plot(steps, averaged_rewards, "blue", label="Running Average", linewidth=3)
-    plt.legend()
-    plt.show()
 
-    # Average of all testing trials
-    plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Q-Learning Testing Performance", fontsize=20, ha="center")
-    plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
-    #plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
-    plt.xlabel("Steps", fontsize=18)
-    plt.ylabel("Reward", fontsize=18)
-    plt.plot(tsteps, taveraged_rewards, "blue", label="Running Average", linewidth=3)
-    plt.legend()
-    plt.show()
+    #########################################
+    # Plotting of all 3 algorithms together #
+    #########################################
+    # qtrain = []
+    # qtest = []
+    # strain = []
+    # stest = []
+    # dstrain = []
+    # dstest = []
+    # files = ["Q_training.txt", "Q_testing.txt", "SARSA_training.txt", "SARSA_testing.txt", "DSARSA_training.txt", "DSARSA_testing.txt"]
+    # all = [qtrain, qtest, strain, stest, dstrain, dstest]
+    # i = 0
+    # for file in files:
+    #     with open(file) as f:
+    #        line = f.readline()
+    #        while line:
+    #            all[i].append(float(line.strip()))
+    #            line = f.readline()
+    #     i += 1
+    #
+    # j = 0
+    # all_running = [[], [], [], [], [], []]
+    # for a in all:
+    #     all_reward = []
+    #     k = 1
+    #     for r in a:
+    #         all_reward.append(r)
+    #         all_running[j].append(sum(all_reward) / float(k))
+    #         k += 1
+    #     j += 1
 
-    # # All trials with average
+    # # Training
     # plt.axes([.1,.1,.8,.7])
-    # plt.figtext(.5,.9,"Q-Learning Performance", fontsize=20, ha="center")
-    # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON) + " across " + str(len(trials)) + " agents",fontsize=18,ha="center")
-    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=15,ha="center")
+    # plt.figtext(.5,.9,"Training Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON), fontsize=20, ha="center")
+    # #plt.title("Training Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
+    # # plt.figtext(.5,.9,"Training Performance", fontsize=20, ha="center")
+    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
     # plt.xlabel("Steps", fontsize=18)
-    # plt.ylabel("Reward", fontsize=18)
-    # # plt.rc('axes', prop_cycle=(cycler('color', ['r', 'y', 'g', 'c', 'b', 'm']) +
-    # #                            cycler('linestyle', ['-', '-', '-', '-', '-', '-'])))
-    # plt.plot(steps, data[0][2], color="blue", label="Agent Trials")
-    # for i in range(1, len(data)):
-    #     plt.plot(steps, data[i][2], color="blue")
-    # plt.plot(steps, averaged_rewards, color="black", label="Running Average of all Agents", linewidth=3)
-    # plt.legend()
+    # plt.ylabel("Running Average of Reward", fontsize=18)
+    # plt.plot(range(0, 200000), all_running[0], "blue", label="Q-Learning", linewidth=2)
+    # plt.plot(range(0, 200000), all_running[4], "yellow", label="SARSA", linewidth=2)
+    # plt.plot(range(0, 200000), all_running[2], "red", label="Double SARSA", linewidth=2)
+    # plt.legend(loc="lower right")
+    # plt.show()
+    #
+    # # Testing
+    # plt.axes([.1,.1,.8,.7])
+    # #plt.title("Testing Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
+    # plt.figtext(.5,.9,"Testing Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON), fontsize=20, ha="center")
+    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
+    # plt.xlabel("Steps", fontsize=18)
+    # plt.ylabel("Running Average of Reward", fontsize=18)
+    # plt.plot(range(0, 50000), all_running[1], "blue", label="Q-Learning", linewidth=2)
+    # plt.plot(range(0, 50000), all_running[5], "yellow", label="SARSA", linewidth=2)
+    # plt.plot(range(0, 50000), all_running[3], "red", label="Double SARSA", linewidth=2)
+    # plt.legend(loc="lower right")
     # plt.show()
 
 if __name__ == "__main__":
