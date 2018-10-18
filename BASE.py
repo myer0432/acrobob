@@ -12,7 +12,9 @@ from cycler import cycler
 plt.style.use('classic')
 
 # Static variables
-MODE = 0 # 0 = Q-Learning and SARSA, 1 = Double SARSA
+MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
+STEPS = 200000 # Training steps
+TSTEPS = 50000 # Testing steps
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
@@ -129,6 +131,8 @@ class QTable:
     # @param actions: The agent's action action_space
     def __init__(self, lower_bounds, upper_bounds, bin_specs, offsets_specs, actions):
         self.tiles = tile(lower_bounds, upper_bounds, bin_specs, offsets_specs)
+        # Make shape of Q table (z, a, b, c) where (a, b, c) is the shape of the tiles
+        # and z is the size of the action space
         temp = list(self.tiles.shape)
         temp[2] += 1
         tup = tuple(temp)
@@ -225,18 +229,14 @@ class QTable:
     # @param gamma: The dicount factor gamma
     def update(self, previous_state, previous_action, state, reward, alpha, gamma):
         previous_Qval = self.getQ(previous_state, previous_action) # Q(s_t, a_t)
-
-        ################## Bellman equation for SARSA ###################
-        action = self.chooseAction(state, EPSILON)
-        current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
-        new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
+        if MODE == 0: # Q
+            max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
+            new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
+        elif MODE == 1: # SARSA
+            action = self.chooseAction(state, EPSILON)
+            current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
+            new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
         #################################################################
-
-        ################## Equation for Q-Learning ######################
-        # max_Qval = np.argmax(self.getQ(state, a) for a in ACTIONS) # Q(s_t+1, a_t+1)
-        # new_Qval = previous_Qval + alpha * (reward + gamma * max_Qval - previous_Qval)
-        #################################################################
-
         self.setQ(previous_state, previous_action, new_Qval)
         return new_Qval # delete
 
@@ -272,7 +272,7 @@ def main():
     # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
-    if MODE == 1: # If double SARSA
+    if MODE == 2: # If double SARSA
         dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
     ############
     # Training #
@@ -280,15 +280,15 @@ def main():
     #RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
-    steps = range(1, 200001) # Steps per session/trial
+    steps = range(1, STEPS + 1) # Steps per session/trial
     trials = range(1, 6) # Number of trials
     best_trial = -1
     best_table = table
-    if MODE == 1:
+    if MODE == 2:
         best_dtable = dtable
     for trial in trials:
         table.reset() # Reset learning for next agent
-        if MODE == 1:
+        if MODE == 2:
             dtable.reset()
         env.reset() # Reset environment
         experiment = [[], [], []] # Data
@@ -309,7 +309,7 @@ def main():
                 previous_state = state
                 if MODE == 0:
                     action = table.chooseAction(state, EPSILON)
-                elif MODE == 1:
+                elif MODE == 2:
                     action = table.chooseDoubleAction(dtable,state, EPSILON)
                 observation = env.step(action)
             # Record new state
@@ -317,11 +317,11 @@ def main():
             reward = observation[1]
             if MODE == 0:
                 table.update(previous_state, action, state, reward, ALPHA, GAMMA)
-            elif MODE == 1:
+            elif MODE == 2:
                 flip = np.random.randint(2)
                 if flip == 0:
                     table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
-                elif flip == 1:
+                elif flip == 2:
                     dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
             # Data collection
             rewards.append(reward)
@@ -332,7 +332,7 @@ def main():
         if (sum(rewards) / float(step)) > best_trial:
             best_trial = sum(rewards) / float(step)
             best_table = table
-            if MODE == 1:
+            if MODE == 2:
                 best_dtable = dtable
 
     ###########
@@ -341,7 +341,7 @@ def main():
     RENDER = False # Enable to render last trial of last experiment
     tdata = [] # Data collection
     observation = None # Priming
-    tsteps = range(1, 50001) # Steps per session/trial
+    tsteps = range(1, TSTEPS + 1) # Steps per session/trial
     ttrials = range(1, 6) # Number of trials
     for ttrial in ttrials:
         env.reset() # Reset environment
@@ -363,7 +363,7 @@ def main():
                 previous_state = state
                 if MODE == 0:
                     action = best_table.chooseAction(state, EPSILON)
-                elif MODE == 1:
+                elif MODE == 2:
                     action = table.chooseDoubleAction(dtable,state, EPSILON)
                 observation = env.step(action)
             # Record new state
