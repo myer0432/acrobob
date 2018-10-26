@@ -13,9 +13,10 @@ plt.style.use('classic')
 
 # Static variables
 MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
-STEPS = 200000 # Training steps
-TSTEPS = 50000 # Testing steps
-TRIALS = 10 # Number of trials
+TR_STEPS = 200000 # Training steps
+T_STEPS = 50000 # Testing steps
+TR_TRIALS = 5 # Training Trials
+T_TRIALS = 10 # Testing trials
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
@@ -280,8 +281,8 @@ def main():
     ############
     data = [] # Data collection
     observation = None # Priming
-    steps = range(1, STEPS + 1) # Steps per session/trial
-    trials = range(1, TRIALS + 1) # Number of trials
+    steps = range(1, TR_STEPS + 1) # Steps per session/trial
+    trials = range(1, TR_TRIALS + 1) # Number of trials
     best_trial = -1
     best_table = table
     if MODE == 2:
@@ -336,8 +337,8 @@ def main():
     RENDER = False # Enable to render last trial of last experiment
     tdata = [] # Data collection
     observation = None # Priming
-    tsteps = range(1, TSTEPS + 1) # Steps per session/trial
-    ttrials = range(1, 6) # Number of trials
+    tsteps = range(1, T_STEPS + 1) # Steps per session/trial
+    ttrials = range(1, T_TRIALS + 1) # Number of trials
     for ttrial in ttrials:
         env.reset() # Reset environment
         test = [[], [], []] # Data
@@ -418,21 +419,21 @@ def main():
 
     # Training
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Training Performance for " + algo + " Across " + str(TRIALS) + " trials", fontsize=20, ha="center")
+    plt.figtext(.5,.9,"Training Performance for " + algo + " Across " + str(TR_TRIALS) + " trials", fontsize=20, ha="center")
     plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
     plt.xlabel("Steps", fontsize=18)
     plt.ylabel("Reward", fontsize=18)
-    plt.plot(range(STEPS), averaged_rewards, "blue", label="Running Average", linewidth=2)
+    plt.plot(range(TR_STEPS), averaged_rewards, "blue", label="Running Average", linewidth=2)
     plt.legend(loc="lower right")
     plt.show()
 
     # Testing
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Testing Performance for " + algo + " Across " + str(TRIALS) + " trials", fontsize=20, ha="center")
+    plt.figtext(.5,.9,"Testing Performance for " + algo + " Across " + str(T_TRIALS) + " trials", fontsize=20, ha="center")
     plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
     plt.xlabel("Steps", fontsize=18)
     plt.ylabel("Reward", fontsize=18)
-    plt.plot(range(TSTEPS), taveraged_rewards, "orange", label="Running Average", linewidth=2)
+    plt.plot(range(T_STEPS), taveraged_rewards, "orange", label="Running Average", linewidth=2)
     plt.legend(loc="lower right")
     plt.show()
 
