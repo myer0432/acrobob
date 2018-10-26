@@ -300,7 +300,6 @@ def main():
         experiment = [[], [], []] # Data
         rewards = [] # Running reward
         total_step = 0 # Total reward per trial
-        terminal = 0 # Flag to represent whether agent has reached terminal state
         print("### Episode", trial, "###")
         for step in steps:
             # Take an action
@@ -319,10 +318,10 @@ def main():
             state = process_state(observation[0])
             reward = observation[1]
             # Set terminal flag
-            if reward == 0.0 and terminal != 1:
+            if reward == 0.0:
                 print("Agent reached terminal state at step", step)
                 total_step = step
-                terminal = 1
+                break
             # Update
             if MODE == 0 or MODE == 1:
                 table.update(previous_state, action, state, reward, ALPHA, GAMMA)
