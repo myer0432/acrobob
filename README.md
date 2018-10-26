@@ -28,3 +28,9 @@ This shows on average how long 100 agents took to reach a terminal state in each
 |Q|1753.6|
 |S|1532.24|
 |D|?|
+
+### Presentation
+
+[Working version](https://docs.google.com/presentation/d/10INKYFpmIKXP7GfELKWysKBvLX78ijg27G1ittbkTAM/edit#slide=id.p)
+
+[Test](README.md)
