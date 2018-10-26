@@ -15,7 +15,7 @@ plt.style.use('classic')
 # Static variables #
 ####################
 # Main
-MODE = 1 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
+MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
 STEPS = 5000
 EPISODES = 100
 # Hyperparameters
@@ -26,9 +26,6 @@ EPSILON = 0.9
 LOWER_BOUNDS = [-1 * math.pi, -1 * math.pi, -12.566, -28.274]
 UPPER_BOUNDS = [math.pi, math.pi, 12.566, 28.274]
 ########################### 5 TILES ####################################
-# The first grid is not offset
-# The second grid is offset to the right by ~ 1/3 * the width of one bin
-# The third grid is offset to the right by ~ 2/3 * the width of one bin
 OFFSETS = ([[0, 0, 0, 0], [0.06283184, 0.06283184, 0.25132, 0.56548], [1.2566368, 1.2566368, 0.50264, 1.13096],
     [0.18849552, 0.18849552, 0.75396, 1.69644], [0.25132736, 0.25132736, 1.00528, 2.26192]])
 BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
@@ -56,7 +53,6 @@ def process_state(state):
 ##########
 # Tiling #
 ##########
-
 # Create one grid
 # Description: Creates a grid for tile coding
 #
@@ -129,7 +125,6 @@ def map_state(state, grids):
 ###########
 # Q Table #
 ###########
-
 # QTable class
 #
 # Description: Used to hold Q values for the agent's policy.
@@ -288,7 +283,7 @@ def main():
     # Training #
     ############
     data = [] # Data collection
-    total_steps = [] # Total rewards for all trials
+    total_steps = [] # Total steps for all trials
     observation = None # Priming
     steps = range(1, STEPS + 1) # Steps per session/trial
     trials = range(1, EPISODES + 1) # Number of trials
@@ -317,11 +312,6 @@ def main():
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            # Set terminal flag
-            if reward == 0.0:
-                print("Agent reached terminal state at step", step)
-                total_step = step
-                break
             # Update
             if MODE == 0 or MODE == 1:
                 table.update(previous_state, action, state, reward, ALPHA, GAMMA)
@@ -337,18 +327,21 @@ def main():
             experiment[0].append(state)
             experiment[1].append(reward)
             experiment[2].append(sum(rewards) / float(step))
+            # End episode at terminal state
+            if reward == 0.0:
+                print("Agent reached terminal state at step", step)
+                total_step = step
+                break
         # Log terminal step
         if total_step == 0:
             total_steps.append(STEPS)
         else:
             total_steps.append(total_step)
         data.append(experiment)
-    # Record total rewards
 
     ###################
     # Data Collection #
     ###################
-
     # Save data
     if MODE == 0:
         out = "Q"
@@ -369,28 +362,28 @@ def main():
         count += 1
     file.close()
 
-    # Set algorithm label
-    if MODE == 0:
-        algo = "Q-Learning"
-    elif MODE == 1:
-        algo = "SARSA"
-    elif MODE == 2:
-        algo = "Double SARSA"
-
-    # Average of training trials
-    averaged_rewards = np.array(data[0][2])
-    for i in range(1, len(data)):
-        averaged_rewards += data[i][2]
-    averaged_rewards /= len(data)
-    # Save data
-    file = open("Data/" + out + "_runningavg_t" + str(TILES) + "_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
-    for value in averaged_rewards:
-        file.write(str(value) + "\n")
-    file.close()
+    # This needs to be rewritten
+    # # Average of training trials
+    # averaged_rewards = np.array(data[0][2])
+    # for i in range(1, len(data)):
+    #     averaged_rewards += data[i][2]
+    # averaged_rewards /= len(data)
+    # # Save data
+    # file = open("Data/" + out + "_runningavg_t" + str(TILES) + "_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    # for value in averaged_rewards:
+    #     file.write(str(value) + "\n")
+    # file.close()
 
     #################
     # Visualization #
     #################
+    # # Set algorithm label
+    # if MODE == 0:
+    #     algo = "Q-Learning"
+    # elif MODE == 1:
+    #     algo = "SARSA"
+    # elif MODE == 2:
+    #     algo = "Double SARSA"
 
     # Average of testing trials
     # taveraged_rewards = np.array(tdata[0][2])
