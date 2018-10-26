@@ -26,5 +26,5 @@ This shows on average how long 100 agents took to reach a terminal state in each
 |Algo|Steps|
 |----|-----|
 |Q|1753.6|
-|S|?|
+|S|1532.24|
 |D|?|
