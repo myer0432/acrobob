@@ -15,6 +15,7 @@ plt.style.use('classic')
 MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
 STEPS = 200000 # Training steps
 TSTEPS = 50000 # Testing steps
+TRIALS = 10 # Number of trials
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
@@ -277,11 +278,10 @@ def main():
     ############
     # Training #
     ############
-    #RENDER = False # Enable to render last trial of last experiment
     data = [] # Data collection
     observation = None # Priming
     steps = range(1, STEPS + 1) # Steps per session/trial
-    trials = range(1, 6) # Number of trials
+    trials = range(1, TRIALS + 1) # Number of trials
     best_trial = -1
     best_table = table
     if MODE == 2:
@@ -293,13 +293,8 @@ def main():
         env.reset() # Reset environment
         experiment = [[], [], []] # Data
         rewards = [] # Running reward
-        #if RENDER and trial == len(trials):
-            #input("Begin rendering?")
         print("### Training trial", trial, "###")
         for step in steps:
-            # Render last trial
-            #if RENDER and trial == len(trials):
-                #env.render()
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
@@ -381,7 +376,13 @@ def main():
     # Visualization #
     #################
 
-    #TODO: Add # of trials to figures
+    # Set algorithm label
+    if MODE == 0:
+        algo = "Q-Learning"
+    elif MODE == 1:
+        algo = "SARSA"
+    elif MODE == 2:
+        algo = "Double SARSA"
 
     # Average of training trials
     averaged_rewards = np.array(data[0][2])
@@ -389,10 +390,15 @@ def main():
         averaged_rewards += data[i][2]
     averaged_rewards /= len(data)
     # Save data
-    # file = open("DSARSA_training.txt", "w")
-    # for value in averaged_rewards:
-    #     file.write(str(value) + "\n")
-    # file.close()
+    if MODE == 0:
+        file = open("Q_training.txt", "w")
+    elif MODE == 1:
+        file = open("S_training.txt", "w")
+    elif MODE == 2:
+        file = open("D_training.txt", "w")
+    for value in averaged_rewards:
+        file.write(str(value) + "\n")
+    file.close()
 
     # Average of testing trials
     taveraged_rewards = np.array(tdata[0][2])
@@ -400,69 +406,35 @@ def main():
         taveraged_rewards += tdata[i][2]
     taveraged_rewards /= len(tdata)
     # Save data
-    # file = open("DSARSA_testing.txt", "w")
-    # for value in taveraged_rewards:
-    #     file.write(str(value) + "\n")
-    # file.close()
+    if MODE == 0:
+        file = open("Q_testing.txt", "w")
+    elif MODE == 1:
+        file = open("S_testing.txt", "w")
+    elif MODE == 2:
+        file = open("D_testing.txt", "w")
+    for value in taveraged_rewards:
+        file.write(str(value) + "\n")
+    file.close()
 
+    # Training
+    plt.axes([.1,.1,.8,.7])
+    plt.figtext(.5,.9,"Training Performance for " + algo + " Across " + str(TRIALS) + " trials", fontsize=20, ha="center")
+    plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
+    plt.xlabel("Steps", fontsize=18)
+    plt.ylabel("Reward", fontsize=18)
+    plt.plot(range(STEPS), averaged_rewards, "blue", label="Running Average", linewidth=2)
+    plt.legend(loc="lower right")
+    plt.show()
 
-    #########################################
-    # Plotting of all 3 algorithms together #
-    #########################################
-    # qtrain = []
-    # qtest = []
-    # strain = []
-    # stest = []
-    # dstrain = []
-    # dstest = []
-    # files = ["Q_training.txt", "Q_testing.txt", "SARSA_training.txt", "SARSA_testing.txt", "DSARSA_training.txt", "DSARSA_testing.txt"]
-    # all = [qtrain, qtest, strain, stest, dstrain, dstest]
-    # i = 0
-    # for file in files:
-    #     with open(file) as f:
-    #        line = f.readline()
-    #        while line:
-    #            all[i].append(float(line.strip()))
-    #            line = f.readline()
-    #     i += 1
-    #
-    # j = 0
-    # all_running = [[], [], [], [], [], []]
-    # for a in all:
-    #     all_reward = []
-    #     k = 1
-    #     for r in a:
-    #         all_reward.append(r)
-    #         all_running[j].append(sum(all_reward) / float(k))
-    #         k += 1
-    #     j += 1
-
-    # # Training
-    # plt.axes([.1,.1,.8,.7])
-    # plt.figtext(.5,.9,"Training Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON), fontsize=20, ha="center")
-    # #plt.title("Training Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
-    # # plt.figtext(.5,.9,"Training Performance", fontsize=20, ha="center")
-    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
-    # plt.xlabel("Steps", fontsize=18)
-    # plt.ylabel("Running Average of Reward", fontsize=18)
-    # plt.plot(range(0, 200000), all_running[0], "blue", label="Q-Learning", linewidth=2)
-    # plt.plot(range(0, 200000), all_running[4], "yellow", label="SARSA", linewidth=2)
-    # plt.plot(range(0, 200000), all_running[2], "red", label="Double SARSA", linewidth=2)
-    # plt.legend(loc="lower right")
-    # plt.show()
-    #
-    # # Testing
-    # plt.axes([.1,.1,.8,.7])
-    # #plt.title("Testing Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON))
-    # plt.figtext(.5,.9,"Testing Performance with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON), fontsize=20, ha="center")
-    # # plt.figtext(.5,.85,"with Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
-    # plt.xlabel("Steps", fontsize=18)
-    # plt.ylabel("Running Average of Reward", fontsize=18)
-    # plt.plot(range(0, 50000), all_running[1], "blue", label="Q-Learning", linewidth=2)
-    # plt.plot(range(0, 50000), all_running[5], "yellow", label="SARSA", linewidth=2)
-    # plt.plot(range(0, 50000), all_running[3], "red", label="Double SARSA", linewidth=2)
-    # plt.legend(loc="lower right")
-    # plt.show()
+    # Testing
+    plt.axes([.1,.1,.8,.7])
+    plt.figtext(.5,.9,"Testing Performance for " + algo + " Across " + str(TRIALS) + " trials", fontsize=20, ha="center")
+    plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
+    plt.xlabel("Steps", fontsize=18)
+    plt.ylabel("Reward", fontsize=18)
+    plt.plot(range(TSTEPS), taveraged_rewards, "orange", label="Running Average", linewidth=2)
+    plt.legend(loc="lower right")
+    plt.show()
 
 if __name__ == "__main__":
     main()
