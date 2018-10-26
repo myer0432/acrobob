@@ -15,7 +15,7 @@ plt.style.use('classic')
 # Static variables #
 ####################
 # Main
-MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
+MODE = 1 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
 STEPS = 5000
 EPISODES = 100
 # Hyperparameters
@@ -310,7 +310,7 @@ def main():
                 observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                if MODE == 0:
+                if MODE == 0 or MODE == 1:
                     action = table.chooseAction(state, EPSILON)
                 elif MODE == 2:
                     action = table.chooseDoubleAction(dtable,state, EPSILON)
@@ -324,7 +324,7 @@ def main():
                 total_step = step
                 terminal = 1
             # Update
-            if MODE == 0:
+            if MODE == 0 or MODE == 1:
                 table.update(previous_state, action, state, reward, ALPHA, GAMMA)
             elif MODE == 2:
                 flip = np.random.randint(2)
