@@ -17,6 +17,13 @@ TR_STEPS = 200000 # Training steps
 T_STEPS = 50000 # Testing steps
 TR_TRIALS = 5 # Training Trials
 T_TRIALS = 10 # Testing trials
+
+# For testing
+# TR_STEPS = 5
+# T_STEPS = 10
+# TR_TRIALS = 5
+# T_TRIALS = 10
+
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
@@ -283,8 +290,6 @@ def main():
     observation = None # Priming
     steps = range(1, TR_STEPS + 1) # Steps per session/trial
     trials = range(1, TR_TRIALS + 1) # Number of trials
-    best_trial = -1
-    best_table = table
     if MODE == 2:
         best_dtable = dtable
     for trial in trials:
@@ -325,11 +330,6 @@ def main():
             experiment[1].append(reward)
             experiment[2].append(sum(rewards) / float(step))
         data.append(experiment)
-        if (sum(rewards) / float(step)) > best_trial:
-            best_trial = sum(rewards) / float(step)
-            best_table = table
-            if MODE == 2:
-                best_dtable = dtable
 
     ###########
     # Testing #
@@ -358,7 +358,7 @@ def main():
             else: # If this is not the first action
                 previous_state = state
                 if MODE == 0:
-                    action = best_table.chooseAction(state, EPSILON)
+                    action = table.chooseAction(state, EPSILON)
                 elif MODE == 2:
                     action = table.chooseDoubleAction(dtable,state, EPSILON)
                 observation = env.step(action)
