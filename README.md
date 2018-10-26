@@ -15,7 +15,7 @@ Updated Base.py to AcroBob.py reworked to be directly comparable to the Open AI 
 
 I expanded to 5 and then 9 tiles and fixed our offsets which were jacked but it seemed to make no difference in performance. This version is set with 5 tiles.
 
-All of my experiments so far have been run on Q. The data output can be found in the Data folder on this repo. We need to run the same experiments for SARSA and Double SARSA. You will not need to edit any code in order to generate output files for your different algorithms as it will generate a file with a name starting with the first letter of your algorithm, but if you run the program twice without moving your old output then it will overwrite it.
+All of my experiments so far have been run on Q. The data output can be found in the Data folder on this repo. We need to run the same experiments for ~~SARSA and~~ Double SARSA. You will not need to edit any code in order to generate output files for your different algorithms as it will generate a file with a name starting with the first letter of your algorithm, but if you run the program twice without moving your old output then it will overwrite it.
 
 **Question**: Do we need to run experiments on varying hyperparameters for our report or do we just need one experiment each on the same hyperparameters and then n works to compare to?
 
