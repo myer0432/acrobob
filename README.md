@@ -2,7 +2,29 @@
 
 **AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and expected SARSA.
 
-### Updates
-**10.13.18:** Just added the Base.py file that Mel and I have been working on. Contains new tiling implementation. Tiling works but needs to be expanded to more dimensions (currently at 2, we have 4). Mapping of states needs to be more robustly tested and tiling has not been tested with actual agent actions, only simulated samples. After that we have a plan for implemention of learning. We plan on tackling all of these today. -S
+### Table of Contents
 
-**10.18.18:** AcroBob version 1.0 complete and functional. All three learning algorithms, Q, SARSA, and double SARSA, are integrated into the same BASE.py file. Added a flag to easily switch between algorithms (MODE=0 --> Q and SARSA, MODE=1 --> double SARSA). Mode is currently set on 0. Hyperparamaters are currently set to a=0.2, e=0.9, g=0.9. Number of tiles=3. This is the current working version as of long checkpoint 2. -S
+|File|Description|
+|-------|----------|
+|README.md|Read Me|
+|AcroBob.py|Current working version|
+|Base.py|Development base|
+
+### Recent Notes
+Updated Base.py to AcroBob.py reworked to be directly comparable to the Open AI Gym benchmarks. Executes over 100 episodes with 5,000 steps each as rarely does an agent need more than this many steps. Records amount of steps it takes before each agent reaches a terminal state and outputs a file containing statistics about the experiment.
+
+I expanded to 5 and then 9 tiles and fixed our offsets which were jacked but it seemed to make no difference in performance. This version is set with 5 tiles.
+
+All of my experiments so far have been run on Q. The data output can be found in the Data folder on this repo. We need to run the same experiments for SARSA and Double SARSA. You will not need to edit any code in order to generate output files for your different algorithms as it will generate a file with a name starting with the first letter of your algorithm, but if you run the program twice without moving your old output then it will overwrite it.
+
+**Question**: Do we need to run experiments on varying parameters for our report or do we just need one experiment each and then n works to compare to?
+
+### Current Results
+
+This shows on average how long 100 agents took to reach a terminal state in each algorithm.
+
+|Algo|Steps|
+|----|-----|
+|Q|1753.6|
+|S|?|
+|D|?|
