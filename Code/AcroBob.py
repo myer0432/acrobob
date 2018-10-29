@@ -15,9 +15,9 @@ plt.style.use('classic')
 # Static variables #
 ####################
 # Main
-MODE = 1 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
+MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
 PRINT = True # If true, prints more frequent progress updates
-RANDOM = False
+RANDOM = True
 TRAINING_EPISODES = 5
 TRAINING_STEPS = 200000 # Max steps per training episode
 TESTING_EPISODES = 100
@@ -442,7 +442,9 @@ def main():
     # Data Collection #
     ###################
     # Save data
-    if MODE == 0:
+    if RANDOM:
+        out = "R"
+    elif MODE == 0:
         out = "Q"
     elif MODE == 1:
         out = "S"
@@ -450,18 +452,12 @@ def main():
         out = "D"
     # Save data
     # Training Running average reward
-    if RANDOM:
-        file = open("../Data/" + out + "_random_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
-    else:
-        file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
     for r in avg_tot_rewards:
         file.write(str(r) + "\n")
     file.close()
     # Testing terminal steps
-    if RANDOM:
-        file = open("../Data/" + out + "_random_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
-    else:
-        file = open("../Data/" + out + "_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    file = open("../Data/" + out + "_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
     file.write("average: " + str(sum(testing_terminal_steps) / len(testing_terminal_steps)) + "\n")
     file.write("minimum: " + str(min(testing_terminal_steps)) + "\n")
     file.write("maximum: " + str(max(testing_terminal_steps)) + "\n")
