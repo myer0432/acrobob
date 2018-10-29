@@ -453,6 +453,9 @@ def main():
     elif MODE == 2:
         out = "D"
     # Save data
+    std = open("../Data/" + out + "_stdev_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    std.write(str(standard_deviation))
+    std.close()
     # Training Running average reward
     file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
     for r in avg_tot_rewards:
