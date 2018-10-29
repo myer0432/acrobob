@@ -453,16 +453,16 @@ def main():
     elif MODE == 2:
         out = "D"
     # Save data
-    std = open("../Data/" + out + "_stdev_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    std = open("../Data/" + out + "_stdev_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
     std.write(str(standard_deviation))
     std.close()
     # Training Running average reward
-    file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
     for r in avg_tot_rewards:
         file.write(str(r) + "\n")
     file.close()
     # Testing terminal steps
-    file = open("../Data/" + out + "_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + ".txt", "w")
+    file = open("../Data/" + out + "_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
     file.write("average: " + str(sum(testing_terminal_steps) / len(testing_terminal_steps)) + "\n")
     file.write("minimum: " + str(min(testing_terminal_steps)) + "\n")
     file.write("maximum: " + str(max(testing_terminal_steps)) + "\n")
