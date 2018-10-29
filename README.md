@@ -1,6 +1,6 @@
 # acrobob
 
-**AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and expected SARSA.
+**AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and double SARSA.
 
 ### Table of Contents
 
