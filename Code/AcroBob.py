@@ -17,7 +17,7 @@ plt.style.use('classic')
 # Main
 MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
 PRINT = True # If true, prints more frequent progress updates
-RANDOM = True
+RANDOM = False
 TRAINING_EPISODES = 5
 TRAINING_STEPS = 200000 # Max steps per training episode
 TESTING_EPISODES = 100
@@ -359,11 +359,13 @@ def main():
     trained_table = table
     if MODE == 2:
         trained_dtable = dtable
-    # Get average of running average rewards
+    # Get average and standard deviation of running average rewards
     avg_tot_rewards = np.array(tot_rewards[0])
     for i in range(1, len(tot_rewards)):
         avg_tot_rewards += tot_rewards[i]
     avg_tot_rewards = avg_tot_rewards / len(tot_rewards)
+    standard_deviation = np.std(avg_tot_rewards)
+    print("Training performance standard deviation:", standard_deviation)
 
     ###########
     # Testing #
