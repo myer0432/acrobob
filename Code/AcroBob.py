@@ -11,29 +11,34 @@ from cycler import cycler
 # Configure plotting
 plt.style.use('classic')
 
-# Static variables
+####################
+# Static variables #
+####################
+# Main
 MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
-TR_STEPS = 200000 # Training steps
-T_STEPS = 50000 # Testing steps
-TR_TRIALS = 5 # Training Trials
-T_TRIALS = 10 # Testing trials
-
-# For testing
-# TR_STEPS = 5
-# T_STEPS = 10
-# TR_TRIALS = 5
-# T_TRIALS = 10
-
+PRINT = True # If enabled, prints more frequent progress updates
+RANDOM = False # If enabled, agents will only take random actions
+RENDER = False # If enabled, last test trial will be rendered
+TRAINING_EPISODES = 5 # Training agents
+TRAINING_STEPS = 200000 # Max steps per training episode
+TESTING_EPISODES = 100 # Testing agents
+TESTING_STEPS = 5000 # Max testing steps
+# Hyperparameters
 ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
+# Tiling
 LOWER_BOUNDS = [-1 * math.pi, -1 * math.pi, -12.566, -28.274]
 UPPER_BOUNDS = [math.pi, math.pi, 12.566, 28.274]
-BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
-# The first grid is not offset
-# The second grid is offset to the right by ~ 1/3 * the width of one bin
-# The third grid is offset to the right by ~ 2/3 * the width of one bin
-OFFSETS = [[0, 0, 0, 0], [0.1, 0.1, 0.418867, 0.942467], [0.2, 0.2, 0.83773, 1.88493]]
+########################### 5 TILES ####################################
+OFFSETS = ([[0, 0, 0, 0], [0.06283184, 0.06283184, 0.25132, 0.56548], [1.2566368, 1.2566368, 0.50264, 1.13096],
+    [0.18849552, 0.18849552, 0.75396, 1.69644], [0.25132736, 0.25132736, 1.00528, 2.26192]])
+BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
+########################################################################
+########################### 3 TILES ####################################
+#OFFSETS = [[0, 0, 0, 0], [1.2566368, 1.2566368, 0.50264, 1.13096], [0.25132736, 0.25132736, 1.00528, 2.26192]]
+#BINS = [[20, 20, 20, 20], [20, 20, 20, 20], [20, 20, 20, 20]]
+########################################################################
 ACTIONS = [0, 1, 2] #0 = torque -1 (counter-clockwise), 1 = torque 0, 2 = torque +1 (clockwise)
 
 # Process states function
@@ -53,7 +58,6 @@ def process_state(state):
 ##########
 # Tiling #
 ##########
-
 # Create one grid
 # Description: Creates a grid for tile coding
 #
@@ -126,7 +130,6 @@ def map_state(state, grids):
 ###########
 # Q Table #
 ###########
-
 # QTable class
 #
 # Description: Used to hold Q values for the agent's policy.
@@ -140,6 +143,7 @@ class QTable:
     # @param actions: The agent's action action_space
     def __init__(self, lower_bounds, upper_bounds, bin_specs, offsets_specs, actions):
         self.tiles = tile(lower_bounds, upper_bounds, bin_specs, offsets_specs)
+        self.bin_specs = bin_specs
         # Make shape of Q table (z, a, b, c) where (a, b, c) is the shape of the tiles
         # and z is the size of the action space
         temp = list(self.tiles.shape)
@@ -245,9 +249,8 @@ class QTable:
             action = self.chooseAction(state, EPSILON)
             current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
             new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
-        #################################################################
         self.setQ(previous_state, previous_action, new_Qval)
-        return new_Qval # delete
+        return new_Qval
 
     # Update policy for double SARSA
     #
@@ -263,11 +266,9 @@ class QTable:
     # @param gamma: The dicount factor gamma
     def double_update(self, target_table, previous_state, previous_action, state, reward, alpha, gamma):
         previous_Qval = self.getQ(previous_state, previous_action) # Qx(s_t, a_t)
-        #################### Bellman equation for SARSA #######################
         action = target_table.chooseAction(state, EPSILON)
         current_Qval = target_table.getQ(state, action) # Qy(s_t+1, a_t+1)
         new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
-        #######################################################################
         self.setQ(previous_state, previous_action, new_Qval)
         return new_Qval
 
@@ -278,45 +279,56 @@ def main():
     #########
     # Begin #
     #########
-    # Initialize Acrobot-v1 environment
     env = gym.make('Acrobot-v1')
     table = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
     if MODE == 2: # If double SARSA
         dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
+    TILES = len(table.bin_specs)
+
     ############
     # Training #
     ############
-    data = [] # Data collection
     observation = None # Priming
-    steps = range(1, TR_STEPS + 1) # Steps per session/trial
-    trials = range(1, TR_TRIALS + 1) # Number of trials
-    if MODE == 2:
-        best_dtable = dtable
-    for trial in trials:
-        table.reset() # Reset learning for next agent
+    episodes = range(1, TRAINING_EPISODES + 1) # Number of episodes
+    training_terminal_steps = [] # Store amount of steps for each agent to terminate
+    tot_rewards = [] # Store total rewards
+    min_step = TRAINING_STEPS
+    print("Beginning training...")
+    for episode in episodes:
+        env.reset() # Reset environment
+        table.reset()
         if MODE == 2:
             dtable.reset()
-        env.reset() # Reset environment
-        experiment = [[], [], []] # Data
-        rewards = [] # Running reward
-        print("### Training trial", trial, "###")
+        terminal = 0 # Flag used to end episode after terminal state is reached
+        training_terminal_step = 0 # Step at which terminal state is reached
+        steps = range(1, TRAINING_STEPS + 1) # Steps per session/episode
+        rewards = [] # Store rewards at each time step
+        avg_rewards = [] # Average running reward
+        if PRINT:
+            print("### Training: Episode", episode, "###")
+        # Run episode
         for step in steps:
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
                 action = env.action_space.sample()
-                observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                if MODE == 0:
-                    action = table.chooseAction(state, EPSILON)
-                elif MODE == 2:
-                    action = table.chooseDoubleAction(dtable,state, EPSILON)
-                observation = env.step(action)
+                if RANDOM:
+                    action = env.action_space.sample()
+                else:
+                    if MODE == 0 or MODE == 1:
+                        action = table.chooseAction(state, EPSILON)
+                    elif MODE == 2:
+                        action = table.chooseDoubleAction(dtable,state, EPSILON)
+            observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            if MODE == 0:
+            rewards.append(reward)
+            avg_rewards.append(sum(rewards) / step)
+            # Update
+            if MODE == 0 or MODE == 1:
                 table.update(previous_state, action, state, reward, ALPHA, GAMMA)
             elif MODE == 2:
                 flip = np.random.randint(2)
@@ -324,59 +336,131 @@ def main():
                     table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
                 elif flip == 2:
                     dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
-            # Data collection
-            rewards.append(reward)
-            experiment[0].append(state)
-            experiment[1].append(reward)
-            experiment[2].append(sum(rewards) / float(step))
-        data.append(experiment)
+            # Print steps until terminal state just for curiosity's sake
+            if reward == 0.0 and terminal == 0:
+                if PRINT:
+                    print("Training agent reached terminal state at step", step)
+                training_terminal_step = step
+                terminal = 1
+        tot_rewards.append(avg_rewards)
+        # Log terminal step
+        if training_terminal_step == 0:
+            training_terminal_steps.append(TRAINING_STEPS)
+        else:
+            training_terminal_steps.append(training_terminal_step)
+    # Store trained Q table
+    trained_table = table
+    if MODE == 2:
+        trained_dtable = dtable
+    # Get average and standard deviation of running average rewards
+    avg_tot_rewards = np.array(tot_rewards[0])
+    for i in range(1, len(tot_rewards)):
+        avg_tot_rewards += tot_rewards[i]
+    avg_tot_rewards = avg_tot_rewards / len(tot_rewards)
 
     ###########
     # Testing #
     ###########
-    RENDER = False # Enable to render last trial of last experiment
-    tdata = [] # Data collection
+    data = [] # Data collection
+    testing_terminal_steps = [] # Total steps for all episodes
     observation = None # Priming
-    tsteps = range(1, T_STEPS + 1) # Steps per session/trial
-    ttrials = range(1, T_TRIALS + 1) # Number of trials
-    for ttrial in ttrials:
+    episodes = range(1, TESTING_EPISODES + 1) # Number of episodes
+    RRENDER = False
+    print("Beginning testing...")
+    for episode in episodes:
+        # Reset each agent to trained table
+        table = trained_table
+        if MODE == 2:
+            dtable = trained_dtable
         env.reset() # Reset environment
-        test = [[], [], []] # Data
+        experiment = [[], [], []] # Data
         rewards = [] # Running reward
-        if RENDER and ttrial == len(ttrials):
-            input("Begin rendering?")
-        print("### Trial", ttrial, "###")
-        for tstep in tsteps:
-            # Render last trial
-            if RENDER and ttrial == len(ttrials):
+        testing_terminal_step = 0
+        terminal = 0 # Flag used to end episodes at terminal state
+        steps = range(1, TESTING_STEPS + 1) # Steps per episode
+        # Render last full episode
+        if RENDER and episode == EPISODES:
+            input("Press enter to begin rendering for testing episode.")
+            RRENDER = True
+        if PRINT:
+            print("### Testing: Episode", episode,"###")
+        # Run episode
+        for step in steps:
+            # Render last episoden for testing
+            if RRENDER:
                 env.render()
             # Take an action
             if observation is None: # If this is the first action
                 previous_state = [0, 0, 0, 0]
                 action = env.action_space.sample()
-                observation = env.step(action) # Take a random action
             else: # If this is not the first action
                 previous_state = state
-                if MODE == 0:
-                    action = table.chooseAction(state, EPSILON)
-                elif MODE == 2:
-                    action = table.chooseDoubleAction(dtable,state, EPSILON)
-                observation = env.step(action)
+                if RANDOM:
+                    action = env.action_space.sample()
+                else:
+                    if MODE == 0 or MODE == 1:
+                        action = table.chooseAction(state, EPSILON)
+                    elif MODE == 2:
+                        action = table.chooseDoubleAction(dtable,state, EPSILON)
+            observation = env.step(action)
             # Record new state
             state = process_state(observation[0])
             reward = observation[1]
-            # Data collection
-            rewards.append(reward)
-            test[0].append(state)
-            test[1].append(reward)
-            test[2].append(sum(rewards) / float(tstep))
-        tdata.append(test)
+            # Update
+            if MODE == 0 or MODE == 1:
+                table.update(previous_state, action, state, reward, ALPHA, GAMMA)
+            elif MODE == 2:
+                flip = np.random.randint(2)
+                if flip == 0:
+                    table.double_update(dtable, previous_state, action, state, reward, ALPHA, GAMMA)
+                elif flip == 2:
+                    dtable.double_update(table, previous_state, action, state, reward, ALPHA, GAMMA)
+            # End terminal episodes at terminal state
+            if reward == 0.0 and terminal == 0:
+                if PRINT:
+                    print("Testing agent reached terminal state at step", step)
+                testing_terminal_step = step
+                terminal = 1
+                break
+        # Log terminal step
+        if testing_terminal_step == 0:
+            testing_terminal_steps.append(TESTING_STEPS)
+        else:
+            testing_terminal_steps.append(testing_terminal_step)
     env.close()
+
+    ###################
+    # Data Collection #
+    ###################
+    # Save data
+    if RANDOM:
+        out = "R"
+    elif MODE == 0:
+        out = "Q"
+    elif MODE == 1:
+        out = "S"
+    elif MODE == 2:
+        out = "D"
+    # Training Running average reward - used for generating a plot with all algos on it
+    file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
+    for r in avg_tot_rewards:
+        file.write(str(r) + "\n")
+    file.close()
+    # Testing terminal steps
+    file = open("../Data/" + out + "_testing_steps_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
+    file.write("average: " + str(sum(testing_terminal_steps) / len(testing_terminal_steps)) + "\n")
+    file.write("minimum: " + str(min(testing_terminal_steps)) + "\n")
+    file.write("maximum: " + str(max(testing_terminal_steps)) + "\n")
+    file.write("-------------\n")
+    count = 1
+    for t in testing_terminal_steps:
+        file.write("episode " + str(count) + ": " + str(t) + "\n")
+        count += 1
+    file.close()
 
     #################
     # Visualization #
     #################
-
     # Set algorithm label
     if MODE == 0:
         algo = "Q-Learning"
@@ -385,55 +469,13 @@ def main():
     elif MODE == 2:
         algo = "Double SARSA"
 
-    # Average of training trials
-    averaged_rewards = np.array(data[0][2])
-    for i in range(1, len(data)):
-        averaged_rewards += data[i][2]
-    averaged_rewards /= len(data)
-    # Save data
-    if MODE == 0:
-        file = open("Q_training.txt", "w")
-    elif MODE == 1:
-        file = open("S_training.txt", "w")
-    elif MODE == 2:
-        file = open("D_training.txt", "w")
-    for value in averaged_rewards:
-        file.write(str(value) + "\n")
-    file.close()
-
-    # Average of testing trials
-    taveraged_rewards = np.array(tdata[0][2])
-    for i in range(1, len(tdata)):
-        taveraged_rewards += tdata[i][2]
-    taveraged_rewards /= len(tdata)
-    # Save data
-    if MODE == 0:
-        file = open("Q_testing.txt", "w")
-    elif MODE == 1:
-        file = open("S_testing.txt", "w")
-    elif MODE == 2:
-        file = open("D_testing.txt", "w")
-    for value in taveraged_rewards:
-        file.write(str(value) + "\n")
-    file.close()
-
     # Training
     plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Training Performance for " + algo + " Across " + str(TR_TRIALS) + " trials", fontsize=20, ha="center")
+    plt.figtext(.5,.9,"Average Training Performance for " + algo + " Across " + str(TRAINING_EPISODES) + " Agents", fontsize=20, ha="center")
     plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
     plt.xlabel("Steps", fontsize=18)
     plt.ylabel("Reward", fontsize=18)
-    plt.plot(range(TR_STEPS), averaged_rewards, "blue", label="Running Average", linewidth=2)
-    plt.legend(loc="lower right")
-    plt.show()
-
-    # Testing
-    plt.axes([.1,.1,.8,.7])
-    plt.figtext(.5,.9,"Testing Performance for " + algo + " Across " + str(T_TRIALS) + " trials", fontsize=20, ha="center")
-    plt.figtext(.5,.85,"Using Alpha=" + str(ALPHA) + " and Epsilon=" + str(EPSILON),fontsize=18,ha="center")
-    plt.xlabel("Steps", fontsize=18)
-    plt.ylabel("Reward", fontsize=18)
-    plt.plot(range(T_STEPS), taveraged_rewards, "orange", label="Running Average", linewidth=2)
+    plt.plot(range(TRAINING_STEPS), avg_tot_rewards, "blue", label="Running Average", linewidth=2)
     plt.legend(loc="lower right")
     plt.show()
 
