@@ -1,6 +1,0 @@
-average: 4.0
-minimum: 4
-maximum: 4
--------------
-episode 1: 4
-episode 2: 4

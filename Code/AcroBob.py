@@ -16,17 +16,13 @@ plt.style.use('classic')
 ####################
 # Main
 MODE = 0 # 0 = Q-Learning, 1 = SARSA, 2 = Double SARSA
-PRINT = True # If true, prints more frequent progress updates
-RANDOM = False
-TRAINING_EPISODES = 5
+PRINT = True # If enabled, prints more frequent progress updates
+RANDOM = False # If enabled, agents will only take random actions
+RENDER = False # If enabled, last test trial will be rendered
+TRAINING_EPISODES = 5 # Training agents
 TRAINING_STEPS = 200000 # Max steps per training episode
-TESTING_EPISODES = 100
+TESTING_EPISODES = 100 # Testing agents
 TESTING_STEPS = 5000 # Max testing steps
-# TRAINING_EPISODES = 5
-# TRAINING_STEPS = 10 # Max steps per training episode
-# TESTING_EPISODES = 2
-# TESTING_STEPS = 4 # Max testing steps
-RENDER = False # Enable to render last trial
 # Hyperparameters
 ALPHA = 0.2
 GAMMA = 0.9
@@ -254,7 +250,7 @@ class QTable:
             current_Qval = self.getQ(state, action) # Q(s_t+1, a_t+1)
             new_Qval = previous_Qval + alpha * (reward + gamma * current_Qval - previous_Qval)
         self.setQ(previous_state, previous_action, new_Qval)
-        return new_Qval # delete
+        return new_Qval
 
     # Update policy for double SARSA
     #
@@ -288,13 +284,14 @@ def main():
     if MODE == 2: # If double SARSA
         dtable = QTable(LOWER_BOUNDS, UPPER_BOUNDS, BINS, OFFSETS, ACTIONS)
     TILES = len(table.bin_specs)
+
     ############
     # Training #
     ############
     observation = None # Priming
     episodes = range(1, TRAINING_EPISODES + 1) # Number of episodes
     training_terminal_steps = [] # Store amount of steps for each agent to terminate
-    tot_rewards = []
+    tot_rewards = [] # Store total rewards
     min_step = TRAINING_STEPS
     print("Beginning training...")
     for episode in episodes:
@@ -305,8 +302,8 @@ def main():
         terminal = 0 # Flag used to end episode after terminal state is reached
         training_terminal_step = 0 # Step at which terminal state is reached
         steps = range(1, TRAINING_STEPS + 1) # Steps per session/episode
-        rewards = []
-        avg_rewards = []
+        rewards = [] # Store rewards at each time step
+        avg_rewards = [] # Average running reward
         if PRINT:
             print("### Training: Episode", episode, "###")
         # Run episode
@@ -351,10 +348,6 @@ def main():
             training_terminal_steps.append(TRAINING_STEPS)
         else:
             training_terminal_steps.append(training_terminal_step)
-        if training_terminal_step < min_step: # DELETE
-            best = table
-            if MODE == 2:
-                bestd = dtable
     # Store trained Q table
     trained_table = table
     if MODE == 2:
@@ -364,8 +357,6 @@ def main():
     for i in range(1, len(tot_rewards)):
         avg_tot_rewards += tot_rewards[i]
     avg_tot_rewards = avg_tot_rewards / len(tot_rewards)
-    standard_deviation = np.std(avg_tot_rewards)
-    print("Training performance standard deviation:", standard_deviation)
 
     ###########
     # Testing #
@@ -378,11 +369,9 @@ def main():
     print("Beginning testing...")
     for episode in episodes:
         # Reset each agent to trained table
-        # table = trained_table # ENABLE
-        table = best # DELETE
+        table = trained_table
         if MODE == 2:
-            # dtable = trained_dtable # ENABLE
-            dtable = bestd # DELETE
+            dtable = trained_dtable
         env.reset() # Reset environment
         experiment = [[], [], []] # Data
         rewards = [] # Running reward
@@ -452,11 +441,7 @@ def main():
         out = "S"
     elif MODE == 2:
         out = "D"
-    # Save data
-    std = open("../Data/" + out + "_stdev_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
-    std.write(str(standard_deviation))
-    std.close()
-    # Training Running average reward
+    # Training Running average reward - used for generating a plot with all algos on it
     file = open("../Data/" + out + "_training_rewards_a" + str(ALPHA) + "_e" + str(EPSILON) + "_g" + str(GAMMA) + ".txt", "w")
     for r in avg_tot_rewards:
         file.write(str(r) + "\n")

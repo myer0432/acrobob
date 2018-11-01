@@ -16,7 +16,7 @@ ALPHA = 0.2
 GAMMA = 0.9
 EPSILON = 0.9
 steps = 200000
-path = "../Data/Backup/"
+path = "../Data/Archive/"
 
 # Read data
 print("Reading random...")
