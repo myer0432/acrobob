@@ -18,12 +18,14 @@
 - Performed on trained agents
 - Amount of steps needed to reach the line recorded for each agent
 - Results averaged over 100 agents
+- Random agent taking random actions at each step included for benchmark
 
 |Alogorithm|Steps|
 |----------|-----|
 |Q-Learning|1598.06|
 |SARSA|1315.16|
 |Double SARSA|1938.41|
+|Random|2834.00|
 
 ### Authors
 Sarah "Blue" Myers, Will Spaeth and Melissa Wilson at the University of Oklahoma.
