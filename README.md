@@ -12,7 +12,7 @@
 
 ### Results
 #### Training
-<p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Learning%20Curve.png" width="500"></a></p>
+<p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Learning%20Curve.png" width="600"></a></p>
 
 #### Testing
 - Performed on trained agents
