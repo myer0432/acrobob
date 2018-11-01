@@ -1,4 +1,12 @@
-# acrobob
+       db                                         88888888ba              88         
+      d88b                                        88      "8b             88         
+     d8'`8b                                       88      ,8P             88         
+    d8'  `8b     ,adPPYba, 8b,dPPYba,  ,adPPYba,  88aaaaaa8P'  ,adPPYba,  88,dPPYba, 
+   d8YaaaaY8b   a8"     "" 88P'   "Y8 a8"     "8a 88""""""8b, a8"     "8a 88P'    "8a
+  d8""""""""8b  8b         88         8b       d8 88      `8b 8b       d8 88       d8
+ d8'        `8b "8a,   ,aa 88         "8a,   ,a8" 88      a8P "8a,   ,a8" 88b,   ,a8"
+d8'          `8b `"Ybbd8"' 88          `"YbbdP"'  88888888P"   `"YbbdP"'  8Y"Ybbd8"' 
+                                         
 
 **AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and double SARSA.
 
@@ -7,8 +15,7 @@
 |File|Description|
 |-------|----------|
 |README.md|Read Me|
-|AcroBob.py|Current working version|
-|Base.py|Development base|
+|AcroBob.py|AcroBob 3.0|
 
 ### Recent Notes
 Updated Base.py to AcroBob.py reworked to be directly comparable to the Open AI Gym benchmarks. Executes over 100 episodes with 5,000 steps each as rarely does an agent need more than this many steps. Records amount of steps it takes before each agent reaches a terminal state and outputs a file containing statistics about the experiment.
