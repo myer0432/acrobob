@@ -11,12 +11,10 @@
 |Media|Figures and Videos|
 
 ### Results
-#### Alpha = 0.2, Epsilon = 0.9, Gamma = 0.9
-
-##### Training
+#### Training
 <p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Learning%20Curve.png" width="500"></a></p>
 
-##### Testing
+#### Testing
 - Performed on trained agents
 - Amount of steps needed to reach the line recorded for each agent
 - Results averaged over 100 agents
