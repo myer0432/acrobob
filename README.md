@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Banner.png"></a></p>
+<img src="https://github.com/myer0432/acrobob/blob/master/Media/Banner.png"></a>
 
 **AcroBob** (full name: AcroRobert) is a reinforcement learning agent being developed in the [Open AI Gym Acrobot-v1 Environment](https://gym.openai.com/envs/Acrobot-v1/) using tile coding with Q-learning, SARSA, and double SARSA.
 
