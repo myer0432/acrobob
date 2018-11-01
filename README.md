@@ -1,11 +1,3 @@
- `d888888                              888888ba           dP`      
-`d8'    88                              88    8b          88`      
-`88aaaaa88a .d8888b. 88d888b. .d8888b. a88aaaa8P' .d8888b. 88d8888`
-`88     88  88'   "" 88'   88 88'   88  88    8b. 88'   88 88'   88`
-`88     88  88.  ... 88       88.  .88  88    .88 88.  .88 88.  .88`
-`88     88  '88888P' dP       '88888P'  88888888P '88888P' 88Y8888`
-                                         
-
 **AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and double SARSA.
 
 ### Table of Contents
