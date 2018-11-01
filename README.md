@@ -1,33 +1,31 @@
-**AcroBob** is a reinforcement learning agent being developed in the Open AI Gym Acrobot-v1 environment using tile coding with Q-learning, SARSA, and double SARSA.
+<p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Banner.png"></a></p>
+
+**AcroBob** is a reinforcement learning agent being developed in the [Open AI Gym Acrobot-v1 Environment](https://gym.openai.com/envs/Acrobot-v1/) using tile coding with Q-learning, SARSA, and double SARSA.
 
 ### Table of Contents
 
 |File|Description|
 |-------|----------|
 |README.md|Read Me|
-|AcroBob.py|AcroBob 3.0|
+|AcroBob.py|AcroBob v3.0|
+|Media|Figures and Videos|
 
-### Recent Notes
-Updated Base.py to AcroBob.py reworked to be directly comparable to the Open AI Gym benchmarks. Executes over 100 episodes with 5,000 steps each as rarely does an agent need more than this many steps. Records amount of steps it takes before each agent reaches a terminal state and outputs a file containing statistics about the experiment.
+### Results
+#### Alpha = 0.2, Epsilon = 0.9, Gamma = 0.9
 
-I expanded to 5 and then 9 tiles and fixed our offsets which were jacked but it seemed to make no difference in performance. This version is set with 5 tiles.
+##### Training
+<p align="center"><img src="https://github.com/myer0432/acrobob/blob/master/Media/Learning%20Curve.png" width="500"></a></p>
 
-All of my experiments so far have been run on Q. The data output can be found in the Data folder on this repo. You do not need to edit any code in order to generate output files for your different algorithms as it will generate a file with a name starting with the first letter of your algorithm, but if you run the program twice without moving your old output then it will overwrite it.
+##### Testing
+- Performed on trained agents
+- Amount of steps needed to reach the line recorded for each agent
+- Results averaged over 100 agents
 
-**Question**: Do we need to run experiments on varying hyperparameters for our report or do we just need one experiment each on the same hyperparameters and then n works to compare to?
+|Alogorithm|Steps|
+|----------|-----|
+|Q-Learning|1598.06|
+|SARSA|1315.16|
+|Double SARSA|1938.41|
 
-### Current Results
-
-This shows on average how long 100 agents took to reach a terminal state in each algorithm.
-
-|Algo|Steps|
-|----|-----|
-|Q|1753.6|
-|S|1532.24|
-|D|1694.12|
-
-### Presentation
-
-[Working version](https://docs.google.com/presentation/d/10INKYFpmIKXP7GfELKWysKBvLX78ijg27G1ittbkTAM/edit#slide=id.p)
-
-[Project Specifications](Project%20Specs.pdf)
+### Authors
+Sarah "Blue" Myers, Will Spaeth and Melissa Wilson at the University of Oklahoma.
